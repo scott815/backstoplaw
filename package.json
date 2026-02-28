@@ -1,0 +1,16 @@
+{
+  "name": "backstopjs-multi-env",
+  "version": "1.0.0",
+  "description": "Multi-environment visual regression testing with BackstopJS",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "compare:local-dev": "./compare.sh local dev",
+    "compare:dev-test": "./compare.sh dev test",
+    "compare:test-live": "./compare.sh test live"
+  },
+  "dependencies": {
+    "backstopjs": "^6.3.25",
+    "minimist": "^1.2.8"
+  }
+}

@@ -1,0 +1,12 @@
+node_modules/
+
+# Test bitmaps and reports (regenerated on each run)
+backstop_data/*/bitmaps_test/
+backstop_data/*/html_report/
+backstop_data/*/ci_report/
+
+# Uncomment the next line to also ignore reference bitmaps
+# (keep them tracked if you want a shared baseline in version control)
+# backstop_data/*/bitmaps_reference/
+
+.claude/*

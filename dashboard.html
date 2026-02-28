@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BackstopJS Dashboard</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f1f5f9;
+        color: #1e293b;
+        min-height: 100vh;
+      }
+
+      /* Header */
+      header {
+        background: #1e293b;
+        color: #f8fafc;
+        padding: 0 24px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        box-shadow: 0 1px 3px rgba(0,0,0,.3);
+      }
+      header h1 { font-size: 1rem; font-weight: 600; letter-spacing: .01em; }
+      header span { font-size: .75rem; color: #94a3b8; margin-left: 8px; font-weight: 400; }
+
+      .header-actions { display: flex; gap: 8px; }
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid #475569;
+        color: #cbd5e1;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: .8rem;
+        cursor: pointer;
+        transition: border-color .15s, color .15s;
+      }
+      .btn-ghost:hover { border-color: #94a3b8; color: #f1f5f9; }
+
+      /* Main */
+      main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+      /* Cards */
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-header {
+        padding: 16px 20px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .pair-label {
+        font-size: .95rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pair-label .env { color: #334155; }
+      .pair-label .arrow { color: #94a3b8; font-size: .85rem; }
+
+      .badge-running {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: .7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+      }
+      .badge-running::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #2563eb;
+        animation: pulse 1s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .3; }
+      }
+
+      .card-body { padding: 16px 20px; flex: 1; }
+
+      .stats { display: flex; gap: 20px; margin-bottom: 12px; }
+      .stat { display: flex; align-items: center; gap: 6px; font-size: .9rem; font-weight: 500; }
+      .stat-pass { color: #16a34a; }
+      .stat-fail { color: #dc2626; }
+      .stat-none { color: #94a3b8; }
+      .stat svg { flex-shrink: 0; }
+
+      .last-run { font-size: .75rem; color: #94a3b8; }
+
+      .card-footer {
+        padding: 12px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn {
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: .8rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: background .15s, opacity .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+      .btn-primary { background: #2563eb; color: #fff; }
+      .btn-primary:not(:disabled):hover { background: #1d4ed8; }
+
+      .btn-secondary { background: #e2e8f0; color: #475569; }
+      .btn-secondary:not(:disabled):hover { background: #cbd5e1; }
+
+      .spinner {
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(255,255,255,.4);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin .7s linear infinite;
+        flex-shrink: 0;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Console */
+      .console-wrap {
+        margin-top: 24px;
+        background: #0f172a;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,.1);
+        display: none;
+      }
+      .console-wrap.visible { display: block; }
+
+      .console-toolbar {
+        background: #1e293b;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #0f172a;
+      }
+      .console-title { font-size: .8rem; font-weight: 600; color: #94a3b8; letter-spacing: .05em; text-transform: uppercase; }
+      .console-pair { font-size: .8rem; color: #64748b; }
+      .btn-close {
+        background: none;
+        border: none;
+        color: #475569;
+        font-size: 1.1rem;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0 4px;
+        transition: color .15s;
+      }
+      .btn-close:hover { color: #94a3b8; }
+
+      .console-output {
+        font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+        font-size: .78rem;
+        line-height: 1.6;
+        color: #e2e8f0;
+        padding: 16px;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      /* Line colorization */
+      .line-pass { color: #4ade80; }
+      .line-fail { color: #f87171; }
+      .line-cmd  { color: #60a5fa; }
+      .line-info { color: #94a3b8; }
+
+      /* Status bar at bottom of console */
+      .console-status {
+        padding: 8px 16px;
+        font-size: .75rem;
+        color: #475569;
+        border-top: 1px solid #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .dot-success { color: #4ade80; }
+      .dot-fail { color: #f87171; }
+
+      /* Empty state */
+      .empty { text-align: center; padding: 48px; color: #94a3b8; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>BackstopJS Dashboard <span>Visual Regression Testing</span></h1>
+      <div class="header-actions">
+        <button class="btn-ghost" id="refresh-btn">↻ Refresh</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="cards" id="cards">
+        <div class="empty">Loading&hellip;</div>
+      </div>
+
+      <div class="console-wrap" id="console-wrap">
+        <div class="console-toolbar">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="console-title">Output</span>
+            <span class="console-pair" id="console-pair"></span>
+          </div>
+          <button class="btn-close" id="console-close" title="Close">×</button>
+        </div>
+        <div class="console-output" id="console-output"></div>
+        <div class="console-status" id="console-status"></div>
+      </div>
+    </main>
+
+    <script>
+      // ---------------------------------------------------------------------------
+      // Utilities
+      // ---------------------------------------------------------------------------
+
+      function timeAgo(iso) {
+        if (!iso) return "never";
+        const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+        if (diff < 60) return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+      }
+
+      function pairLabel(ref, test) {
+        return `<span class="env">${ref}</span><span class="arrow">→</span><span class="env">${test}</span>`;
+      }
+
+      function colorLine(text) {
+        const span = document.createElement("span");
+        if (/pass/i.test(text)) span.className = "line-pass";
+        else if (/fail|error|mismatch/i.test(text)) span.className = "line-fail";
+        else if (/COMMAND|==>/.test(text)) span.className = "line-cmd";
+        else span.className = "line-info";
+        span.textContent = text + "\n";
+        return span;
+      }
+
+      // ---------------------------------------------------------------------------
+      // State
+      // ---------------------------------------------------------------------------
+
+      let activeEventSource = null;
+      let activePair = null;
+
+      // ---------------------------------------------------------------------------
+      // Render cards
+      // ---------------------------------------------------------------------------
+
+      function renderCards(pairs) {
+        const container = document.getElementById("cards");
+        if (!pairs.length) {
+          container.innerHTML = '<div class="empty">No comparison pairs found.</div>';
+          return;
+        }
+
+        container.innerHTML = "";
+
+        for (const p of pairs) {
+          const hasResults = p.lastRun !== null;
+          const card = document.createElement("div");
+          card.className = "card";
+          card.id = `card-${p.pair}`;
+
+          const runningBadge = p.running
+            ? `<span class="badge-running">Running</span>`
+            : "";
+
+          let statsHtml;
+          if (!hasResults) {
+            statsHtml = `<span class="stat stat-none">No results yet</span>`;
+          } else {
+            statsHtml = `
+              <span class="stat stat-pass">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" stroke="#16a34a" stroke-width="1.5"/>
+                  <path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                ${p.passed} pass
+              </span>
+              <span class="stat stat-fail">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" stroke="#dc2626" stroke-width="1.5"/>
+                  <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                ${p.failed} fail
+              </span>
+            `;
+          }
+
+          card.innerHTML = `
+            <div class="card-header">
+              <div class="pair-label">${pairLabel(p.ref, p.test)}</div>
+              ${runningBadge}
+            </div>
+            <div class="card-body">
+              <div class="stats">${statsHtml}</div>
+              <div class="last-run">Last run: ${timeAgo(p.lastRun)}</div>
+            </div>
+            <div class="card-footer">
+              <button
+                class="btn btn-secondary"
+                ${!p.hasReport ? "disabled" : ""}
+                data-action="report"
+                data-pair="${p.pair}"
+              >View Report</button>
+              <button
+                class="btn btn-primary"
+                ${p.running ? "disabled" : ""}
+                data-action="run"
+                data-ref="${p.ref}"
+                data-test="${p.test}"
+                data-pair="${p.pair}"
+              >
+                ${p.running ? '<span class="spinner"></span> Running…' : "▶ Run"}
+              </button>
+            </div>
+          `;
+
+          container.appendChild(card);
+        }
+      }
+
+      // ---------------------------------------------------------------------------
+      // API calls
+      // ---------------------------------------------------------------------------
+
+      async function loadStatus() {
+        const res = await fetch("/api/status");
+        return res.json();
+      }
+
+      async function refreshCards() {
+        const pairs = await loadStatus();
+        renderCards(pairs);
+      }
+
+      async function startRun(ref, test, pair) {
+        // Disable the run button immediately
+        const btn = document.querySelector(`[data-action="run"][data-pair="${pair}"]`);
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner"></span> Running…';
+        }
+
+        const res = await fetch("/api/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ref, test }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showConsole(pair, ref, test);
+          appendLine(`Error: ${err.error || res.statusText}`);
+          return;
+        }
+
+        const { runId } = await res.json();
+        showConsole(pair, ref, test);
+        streamLogs(runId, pair);
+      }
+
+      // ---------------------------------------------------------------------------
+      // Console
+      // ---------------------------------------------------------------------------
+
+      function showConsole(pair, ref, test) {
+        const wrap = document.getElementById("console-wrap");
+        const output = document.getElementById("console-output");
+        const pairEl = document.getElementById("console-pair");
+        const status = document.getElementById("console-status");
+
+        wrap.classList.add("visible");
+        output.innerHTML = "";
+        status.innerHTML = "";
+        pairEl.textContent = `${ref} → ${test}`;
+        activePair = pair;
+
+        wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function appendLine(text) {
+        const output = document.getElementById("console-output");
+        output.appendChild(colorLine(text));
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function setConsoleStatus(exitCode) {
+        const status = document.getElementById("console-status");
+        if (exitCode === 0) {
+          status.innerHTML = `<span class="dot-success">●</span> Completed successfully`;
+        } else {
+          status.innerHTML = `<span class="dot-fail">●</span> Completed with mismatches (exit ${exitCode})`;
+        }
+      }
+
+      function streamLogs(runId, pair) {
+        // Close any previous stream
+        if (activeEventSource) activeEventSource.close();
+
+        const es = new EventSource(`/api/logs/${encodeURIComponent(runId)}`);
+        activeEventSource = es;
+
+        es.onmessage = (e) => {
+          try {
+            appendLine(JSON.parse(e.data));
+          } catch {
+            appendLine(e.data);
+          }
+        };
+
+        es.addEventListener("done", (e) => {
+          const exitCode = parseInt(e.data, 10);
+          setConsoleStatus(exitCode);
+          es.close();
+          activeEventSource = null;
+          // Refresh cards to update pass/fail counts and remove running badge
+          setTimeout(refreshCards, 500);
+        });
+
+        es.onerror = () => {
+          appendLine("Connection lost.");
+          es.close();
+          activeEventSource = null;
+        };
+      }
+
+      // ---------------------------------------------------------------------------
+      // Event delegation
+      // ---------------------------------------------------------------------------
+
+      document.getElementById("cards").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-action]");
+        if (!btn || btn.disabled) return;
+
+        if (btn.dataset.action === "report") {
+          window.open(`/backstop_data/${btn.dataset.pair}/html_report/index.html`, "_blank");
+        }
+
+        if (btn.dataset.action === "run") {
+          startRun(btn.dataset.ref, btn.dataset.test, btn.dataset.pair);
+        }
+      });
+
+      document.getElementById("refresh-btn").addEventListener("click", refreshCards);
+
+      document.getElementById("console-close").addEventListener("click", () => {
+        document.getElementById("console-wrap").classList.remove("visible");
+      });
+
+      // ---------------------------------------------------------------------------
+      // Boot
+      // ---------------------------------------------------------------------------
+
+      refreshCards();
+    </script>
+  </body>
+</html>
