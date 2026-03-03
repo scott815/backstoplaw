@@ -11,6 +11,13 @@ const KNOWN_PAIRS = ["local-vs-dev", "dev-vs-test", "test-vs-live"];
 const VALID_ENVS = new Set(["local", "dev", "test", "staging", "live", "prod"]);
 const CANONICAL = { staging: "test", prod: "live" };
 
+const ENVIRONMENTS = {
+  local: "https://authorities.lndo.site",
+  dev:   "https://dev-authorities.pantheonsite.io",
+  test:  "https://test-authorities.pantheonsite.io",
+  live:  "https://attorneyatlawmagazine.com",
+};
+
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "application/javascript",
@@ -108,6 +115,27 @@ function getPairStatus(pair) {
   return result;
 }
 
+function readScenarios() {
+  const p = path.join(ROOT, "scenarios.js");
+  delete require.cache[require.resolve(p)];
+  return require(p);
+}
+
+function writeScenarios(scenarios) {
+  const lines = scenarios.map((s) => "  " + JSON.stringify(s) + ",");
+  const content =
+    `/**\n * Page definitions — single source of truth for all scenarios.\n` +
+    ` *\n * Each entry becomes a BackstopJS scenario. To add a page, just append\n` +
+    ` * another object. Per-page overrides (delay, selectors, etc.) are merged\n` +
+    ` * into the scenario defaults defined in backstop.config.js.\n */\n` +
+    `module.exports = [\n${lines.join("\n")}\n];\n`;
+  fs.writeFileSync(path.join(ROOT, "scenarios.js"), content);
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // ---------------------------------------------------------------------------
 // Route handlers
 // ---------------------------------------------------------------------------
@@ -131,9 +159,9 @@ function apiRun(req, res) {
   let body = "";
   req.on("data", (chunk) => (body += chunk));
   req.on("end", () => {
-    let ref, test;
+    let ref, test, tag;
     try {
-      ({ ref, test } = JSON.parse(body));
+      ({ ref, test, tag } = JSON.parse(body));
     } catch {
       return json(res, 400, { error: "Invalid JSON" });
     }
@@ -152,7 +180,18 @@ function apiRun(req, res) {
 
     const run = { logs: [], listeners: [], done: false, exitCode: null };
 
-    const proc = spawn("./compare.sh", [ref, test], {
+    const args = [ref, test];
+    if (tag) {
+      const scenarios = readScenarios();
+      const matching = scenarios.filter((s) => (s.tags || []).includes(tag));
+      if (!matching.length) {
+        return json(res, 400, { error: `No pages are tagged "${tag}"` });
+      }
+      const regex = matching.map((s) => escapeRegex(s.label)).join("|");
+      args.push(`--filter=(${regex})`);
+    }
+
+    const proc = spawn("./compare.sh", args, {
       cwd: ROOT,
       env: { ...process.env },
     });
@@ -233,6 +272,204 @@ function apiLogs(req, runId, res) {
   req.on("close", remove);
 }
 
+function apiGetScenarios(res) {
+  try {
+    json(res, 200, { scenarios: readScenarios(), environments: ENVIRONMENTS });
+  } catch (err) {
+    json(res, 500, { error: err.message });
+  }
+}
+
+function apiAddScenario(req, res) {
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", () => {
+    let label, pagePath, tags;
+    try {
+      ({ label, path: pagePath, tags } = JSON.parse(body));
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+
+    if (!label || !label.trim()) {
+      return json(res, 400, { error: "Label is required" });
+    }
+    if (!pagePath || !pagePath.startsWith("/")) {
+      return json(res, 400, { error: "Path must start with /" });
+    }
+
+    const scenarios = readScenarios();
+    if (scenarios.some((s) => s.path === pagePath)) {
+      return json(res, 409, { error: `Path "${pagePath}" already exists` });
+    }
+
+    const entry = { label: label.trim(), path: pagePath };
+    const cleanedTags = (Array.isArray(tags) ? tags : [])
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    if (cleanedTags.length) entry.tags = cleanedTags;
+
+    scenarios.push(entry);
+    writeScenarios(scenarios);
+    json(res, 200, { scenarios });
+  });
+}
+
+function apiDeleteScenario(index, res) {
+  const scenarios = readScenarios();
+  if (index < 0 || index >= scenarios.length) {
+    return json(res, 400, { error: "Index out of range" });
+  }
+  scenarios.splice(index, 1);
+  writeScenarios(scenarios);
+  json(res, 200, { scenarios });
+}
+
+function apiUpdateScenarioTags(req, index, res) {
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", () => {
+    let tags;
+    try {
+      ({ tags } = JSON.parse(body));
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+
+    const scenarios = readScenarios();
+    if (index < 0 || index >= scenarios.length) {
+      return json(res, 400, { error: "Index out of range" });
+    }
+
+    const cleaned = (Array.isArray(tags) ? tags : [])
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (cleaned.length) {
+      scenarios[index].tags = cleaned;
+    } else {
+      delete scenarios[index].tags;
+    }
+
+    writeScenarios(scenarios);
+    json(res, 200, { scenarios });
+  });
+}
+
+function apiQuickRun(req, res) {
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", () => {
+    let label, pagePath, ref, test;
+    try {
+      ({ label, path: pagePath, ref, test } = JSON.parse(body));
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+
+    if (!pagePath || !pagePath.startsWith("/")) {
+      return json(res, 400, { error: "Path must start with /" });
+    }
+    if (!VALID_ENVS.has(ref) || !VALID_ENVS.has(test)) {
+      return json(res, 400, { error: "Invalid environment" });
+    }
+
+    const refCanon  = CANONICAL[ref]  || ref;
+    const testCanon = CANONICAL[test] || test;
+    const refBase   = ENVIRONMENTS[refCanon];
+    const testBase  = ENVIRONMENTS[testCanon];
+
+    const runId    = `quick-${Date.now()}`;
+    const quickDir = path.join(DATA_DIR, "quick-runs");
+    const cfgPath  = path.join(quickDir, `config-${runId}.json`);
+
+    fs.mkdirSync(quickDir, { recursive: true });
+
+    const scenarioLabel = (label && label.trim()) || pagePath;
+    const config = {
+      id: runId,
+      engine: "puppeteer",
+      viewports: [
+        { label: "desktop", width: 1920, height: 1080 },
+        { label: "tablet",  width: 1024, height: 768  },
+        { label: "mobile",  width: 375,  height: 812  },
+      ],
+      scenarios: [{
+        label: scenarioLabel,
+        url: testBase + pagePath,
+        referenceUrl: refBase + pagePath,
+        delay: 1500,
+        misMatchThreshold: 0.1,
+        requireSameDimensions: false,
+        selectors: ["document"],
+        removeSelectors: [
+          "#onetrust-consent-sdk", "#onetrust-banner-sdk",
+          ".cookie-banner", "[id*='cookie']", "[class*='cookie-consent']",
+          "iframe[src*='doubleclick']", "iframe[src*='googlesyndication']",
+          "iframe[src*='adservice']",
+        ],
+      }],
+      onBeforeScript: "puppet/onBefore.js",
+      onReadyScript: "puppet/onReady.js",
+      paths: {
+        bitmaps_reference: `backstop_data/quick-runs/${runId}/bitmaps_reference`,
+        bitmaps_test:      `backstop_data/quick-runs/${runId}/bitmaps_test`,
+        engine_scripts:    "backstop_data/engine_scripts",
+        html_report:       `backstop_data/quick-runs/${runId}/html_report`,
+        ci_report:         `backstop_data/quick-runs/${runId}/ci_report`,
+      },
+      engineOptions: { ignoreHTTPSErrors: true, args: ["--no-sandbox"] },
+      asyncCaptureLimit: 3,
+      asyncCompareLimit: 10,
+    };
+
+    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2));
+
+    const relCfg = path.relative(ROOT, cfgPath);
+    const run = { logs: [], listeners: [], done: false, exitCode: null };
+
+    const proc = spawn(
+      "sh",
+      ["-c", `npx backstop reference --config="${relCfg}" && npx backstop test --config="${relCfg}"`],
+      { cwd: ROOT, env: { ...process.env } }
+    );
+
+    function emit(line) {
+      run.logs.push(line);
+      for (const fn of run.listeners) fn(line, null);
+    }
+
+    proc.stdout.on("data", (d) => d.toString().split("\n").forEach((l) => l && emit(l)));
+    proc.stderr.on("data", (d) => d.toString().split("\n").forEach((l) => l && emit(l)));
+    proc.on("close", (code) => {
+      run.done = true;
+      run.exitCode = code;
+      for (const fn of run.listeners) fn(null, code);
+    });
+
+    run.process = proc;
+    runs.set(runId, run);
+
+    json(res, 200, {
+      runId,
+      reportUrl: `/backstop_data/quick-runs/${runId}/html_report/index.html`,
+    });
+  });
+}
+
+function apiRestart(res) {
+  json(res, 200, { message: "Restarting…" });
+  setTimeout(() => {
+    const child = spawn(process.execPath, [__filename], {
+      detached: true,
+      stdio: "ignore",
+      env: { ...process.env },
+    });
+    child.unref();
+    process.exit(0);
+  }, 150);
+}
+
 // ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
@@ -259,8 +496,19 @@ const server = http.createServer((req, res) => {
   }
 
   // API routes
-  if (method === "GET" && pathname === "/api/status") return apiStatus(res);
-  if (method === "POST" && pathname === "/api/run") return apiRun(req, res);
+  if (method === "GET"  && pathname === "/api/status")    return apiStatus(res);
+  if (method === "POST" && pathname === "/api/run")        return apiRun(req, res);
+  if (method === "GET"  && pathname === "/api/scenarios")  return apiGetScenarios(res);
+  if (method === "POST" && pathname === "/api/scenarios")  return apiAddScenario(req, res);
+
+  const delMatch = pathname.match(/^\/api\/scenarios\/(\d+)$/);
+  if (method === "DELETE" && delMatch) return apiDeleteScenario(Number(delMatch[1]), res);
+
+  const tagsMatch = pathname.match(/^\/api\/scenarios\/(\d+)\/tags$/);
+  if (method === "PATCH" && tagsMatch) return apiUpdateScenarioTags(req, Number(tagsMatch[1]), res);
+
+  if (method === "POST" && pathname === "/api/quick-run") return apiQuickRun(req, res);
+  if (method === "POST" && pathname === "/api/restart")   return apiRestart(res);
 
   const logsMatch = pathname.match(/^\/api\/logs\/(.+)$/);
   if (method === "GET" && logsMatch) return apiLogs(req, logsMatch[1], res);

@@ -41,11 +41,41 @@
         font-size: .8rem;
         cursor: pointer;
         transition: border-color .15s, color .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
       }
       .btn-ghost:hover { border-color: #94a3b8; color: #f1f5f9; }
+      .btn-ghost:disabled { opacity: .45; cursor: not-allowed; }
 
       /* Main */
       main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+      /* Tag filter bar */
+      .tag-filter-bar {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .tag-filter-label { font-size: .78rem; font-weight: 600; color: #64748b; white-space: nowrap; }
+      .tag-chip {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px solid transparent;
+        transition: all .15s;
+        line-height: 1.4;
+      }
+      .tag-chip-all {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #475569;
+      }
+      .tag-chip-all.active, .tag-chip-all:hover { background: #1e293b; border-color: #1e293b; color: #fff; }
 
       /* Cards */
       .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
@@ -99,10 +129,7 @@
         background: #2563eb;
         animation: pulse 1s infinite;
       }
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: .3; }
-      }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 
       .card-body { padding: 16px 20px; flex: 1; }
 
@@ -136,16 +163,13 @@
         gap: 5px;
       }
       .btn:disabled { opacity: .45; cursor: not-allowed; }
-
       .btn-primary { background: #2563eb; color: #fff; }
       .btn-primary:not(:disabled):hover { background: #1d4ed8; }
-
       .btn-secondary { background: #e2e8f0; color: #475569; }
       .btn-secondary:not(:disabled):hover { background: #cbd5e1; }
 
       .spinner {
-        width: 12px;
-        height: 12px;
+        width: 12px; height: 12px;
         border: 2px solid rgba(255,255,255,.4);
         border-top-color: #fff;
         border-radius: 50%;
@@ -153,6 +177,174 @@
         flex-shrink: 0;
       }
       @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* Pages section */
+      .pages-section {
+        margin-top: 24px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+        overflow: hidden;
+      }
+
+      .pages-header {
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .pages-title { font-size: .875rem; font-weight: 600; color: #334155; }
+      .pages-title .count { font-weight: 400; color: #94a3b8; margin-left: 4px; }
+
+      .btn-add {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: .8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .btn-add:hover { background: #e2e8f0; }
+
+      .pages-table { width: 100%; border-collapse: collapse; }
+      .pages-table th {
+        text-align: left;
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #94a3b8;
+        padding: 8px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+      }
+      .pages-table td {
+        padding: 10px 20px;
+        font-size: .85rem;
+        border-bottom: 1px solid #f8fafc;
+        vertical-align: middle;
+      }
+      .pages-table tr:last-child td { border-bottom: none; }
+      .pages-table tr:hover td { background: #f8fafc; }
+      .page-label { color: #1e293b; font-weight: 500; }
+      .page-path {
+        font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+        font-size: .8rem;
+        color: #475569;
+      }
+      .page-urls { font-size: .75rem; color: #94a3b8; }
+      .page-url-row { display: flex; gap: 6px; align-items: baseline; }
+      .page-url-env { font-weight: 600; color: #64748b; min-width: 36px; }
+      .page-url-link { color: #2563eb; text-decoration: none; }
+      .page-url-link:hover { text-decoration: underline; }
+
+      /* Tag badges */
+      .tags-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+      .tag-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: .7rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .btn-edit-tags {
+        background: none;
+        border: 1px dashed #cbd5e1;
+        color: #94a3b8;
+        font-size: .7rem;
+        padding: 1px 6px;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: border-color .15s, color .15s;
+      }
+      .btn-edit-tags:hover { border-color: #64748b; color: #475569; }
+
+      /* Inline tags editor */
+      .tags-editor {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+      }
+      .tags-editor.open { display: flex; }
+      .tags-editor input {
+        padding: 3px 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: .78rem;
+        outline: none;
+        flex: 1;
+        min-width: 120px;
+      }
+      .tags-editor input:focus { border-color: #2563eb; }
+      .btn-tags-save {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: .75rem;
+        cursor: pointer;
+      }
+      .btn-tags-cancel {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: .75rem;
+        cursor: pointer;
+        padding: 3px 4px;
+      }
+
+      .btn-delete {
+        background: none;
+        border: none;
+        color: #cbd5e1;
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 4px 6px;
+        border-radius: 4px;
+        transition: color .15s, background .15s;
+      }
+      .btn-delete:hover { color: #ef4444; background: #fef2f2; }
+
+      /* Add page form */
+      .add-page-form {
+        padding: 16px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: none;
+      }
+      .add-page-form.visible { display: block; }
+      .add-page-form .form-row {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .form-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+      .form-field label { font-size: .75rem; font-weight: 600; color: #64748b; }
+      .form-field input {
+        padding: 7px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: .85rem;
+        outline: none;
+        transition: border-color .15s;
+        background: #fff;
+      }
+      .form-field input:focus { border-color: #2563eb; }
+      .form-field input.error { border-color: #ef4444; }
+      .form-error { font-size: .75rem; color: #ef4444; margin-top: 6px; min-height: 1em; }
+      .form-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
 
       /* Console */
       .console-wrap {
@@ -164,7 +356,6 @@
         display: none;
       }
       .console-wrap.visible { display: block; }
-
       .console-toolbar {
         background: #1e293b;
         padding: 10px 16px;
@@ -176,51 +367,72 @@
       .console-title { font-size: .8rem; font-weight: 600; color: #94a3b8; letter-spacing: .05em; text-transform: uppercase; }
       .console-pair { font-size: .8rem; color: #64748b; }
       .btn-close {
-        background: none;
-        border: none;
-        color: #475569;
-        font-size: 1.1rem;
-        cursor: pointer;
-        line-height: 1;
-        padding: 0 4px;
-        transition: color .15s;
+        background: none; border: none; color: #475569; font-size: 1.1rem;
+        cursor: pointer; line-height: 1; padding: 0 4px; transition: color .15s;
       }
       .btn-close:hover { color: #94a3b8; }
-
       .console-output {
         font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
-        font-size: .78rem;
-        line-height: 1.6;
-        color: #e2e8f0;
-        padding: 16px;
-        min-height: 200px;
-        max-height: 400px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-break: break-all;
+        font-size: .78rem; line-height: 1.6; color: #e2e8f0;
+        padding: 16px; min-height: 200px; max-height: 400px;
+        overflow-y: auto; white-space: pre-wrap; word-break: break-all;
       }
-
-      /* Line colorization */
       .line-pass { color: #4ade80; }
       .line-fail { color: #f87171; }
       .line-cmd  { color: #60a5fa; }
       .line-info { color: #94a3b8; }
-
-      /* Status bar at bottom of console */
       .console-status {
-        padding: 8px 16px;
-        font-size: .75rem;
-        color: #475569;
-        border-top: 1px solid #1e293b;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        padding: 8px 16px; font-size: .75rem; color: #475569;
+        border-top: 1px solid #1e293b; display: flex; align-items: center; gap: 6px;
       }
       .dot-success { color: #4ade80; }
       .dot-fail { color: #f87171; }
 
-      /* Empty state */
       .empty { text-align: center; padding: 48px; color: #94a3b8; font-size: .9rem; }
+
+      /* Quick Test panel */
+      .quick-test-panel {
+        margin-top: 24px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+        overflow: hidden;
+        border-left: 4px solid #7c3aed;
+      }
+      .quick-test-header {
+        padding: 14px 20px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .quick-test-header h2 { font-size: .875rem; font-weight: 600; color: #334155; }
+      .quick-test-hint { font-size: .75rem; color: #94a3b8; }
+      .quick-test-body { padding: 16px 20px; }
+      .quick-test-body .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+      .qt-select {
+        padding: 7px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: .85rem;
+        outline: none;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color .15s;
+        width: 100%;
+      }
+      .qt-select:focus { border-color: #7c3aed; }
+      .btn-purple {
+        background: #7c3aed;
+        color: #fff;
+      }
+      .btn-purple:not(:disabled):hover { background: #6d28d9; }
+      .qt-arrow {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        padding-bottom: 8px;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
@@ -228,12 +440,92 @@
       <h1>BackstopJS Dashboard <span>Visual Regression Testing</span></h1>
       <div class="header-actions">
         <button class="btn-ghost" id="refresh-btn">↻ Refresh</button>
+        <button class="btn-ghost" id="restart-btn">⟳ Restart Server</button>
       </div>
     </header>
 
     <main>
+      <!-- Tag filter bar (shown when tags exist) -->
+      <div class="tag-filter-bar" id="tag-filter-bar">
+        <span class="tag-filter-label">Run filter:</span>
+      </div>
+
       <div class="cards" id="cards">
         <div class="empty">Loading&hellip;</div>
+      </div>
+
+      <!-- Quick Test panel -->
+      <div class="quick-test-panel">
+        <div class="quick-test-header">
+          <h2>Quick Test</h2>
+          <span class="quick-test-hint">One-time comparison — not saved to your page list</span>
+        </div>
+        <div class="quick-test-body">
+          <div class="form-row">
+            <div class="form-field" style="flex:2;min-width:180px;">
+              <label for="qt-path">URL Path <span style="font-weight:400;color:#94a3b8">(must start with /)</span></label>
+              <input class="form-field input" id="qt-path" type="text" placeholder="/some/page" autocomplete="off" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;outline:none;background:#fff;transition:border-color .15s;width:100%;" />
+            </div>
+            <div class="form-field" style="flex:2;min-width:140px;">
+              <label for="qt-label">Label <span style="font-weight:400;color:#94a3b8">(optional)</span></label>
+              <input class="form-field input" id="qt-label" type="text" placeholder="e.g. Contact page" autocomplete="off" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;outline:none;background:#fff;transition:border-color .15s;width:100%;" />
+            </div>
+            <div class="form-field" style="flex:1;min-width:120px;">
+              <label for="qt-ref">Reference (from)</label>
+              <select id="qt-ref" class="qt-select"></select>
+            </div>
+            <div class="qt-arrow">→</div>
+            <div class="form-field" style="flex:1;min-width:120px;">
+              <label for="qt-test">Compare (to)</label>
+              <select id="qt-test" class="qt-select"></select>
+            </div>
+            <div class="form-actions" style="padding-bottom:1px;">
+              <button class="btn btn-purple" id="qt-run-btn">▶ Run Test</button>
+            </div>
+          </div>
+          <div class="form-error" id="qt-error"></div>
+        </div>
+      </div>
+
+      <div class="pages-section" id="pages-section">
+        <div class="pages-header">
+          <span class="pages-title">Pages Being Tested <span class="count" id="pages-count"></span></span>
+          <button class="btn-add" id="add-page-btn">+ Add Page</button>
+        </div>
+        <table class="pages-table" id="pages-table">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Path &amp; URLs</th>
+              <th>Tags</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pages-tbody">
+            <tr><td colspan="4" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+        <div class="add-page-form" id="add-page-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="input-label">Label</label>
+              <input id="input-label" type="text" placeholder="e.g. Contact Page" autocomplete="off" />
+            </div>
+            <div class="form-field">
+              <label for="input-path">Path <span style="font-weight:400;color:#94a3b8">(must start with /)</span></label>
+              <input id="input-path" type="text" placeholder="/contact" autocomplete="off" />
+            </div>
+            <div class="form-field">
+              <label for="input-tags">Tags <span style="font-weight:400;color:#94a3b8">(comma-separated, optional)</span></label>
+              <input id="input-tags" type="text" placeholder="canada, usa" autocomplete="off" />
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="submit-page-btn">Add Page</button>
+              <button class="btn btn-secondary" id="cancel-page-btn">Cancel</button>
+            </div>
+          </div>
+          <div class="form-error" id="form-error"></div>
+        </div>
       </div>
 
       <div class="console-wrap" id="console-wrap">
@@ -250,6 +542,29 @@
     </main>
 
     <script>
+      // ---------------------------------------------------------------------------
+      // Tag colors — consistent per tag name via hash
+      // ---------------------------------------------------------------------------
+      const TAG_COLORS = [
+        { bg: '#eff6ff', text: '#2563eb' },
+        { bg: '#f0fdf4', text: '#16a34a' },
+        { bg: '#fff7ed', text: '#ea580c' },
+        { bg: '#faf5ff', text: '#7c3aed' },
+        { bg: '#fdf2f8', text: '#db2777' },
+        { bg: '#f0fdfa', text: '#0d9488' },
+      ];
+
+      function tagColor(tag) {
+        let hash = 0;
+        for (const c of tag) hash = (hash * 31 + c.charCodeAt(0)) & 0xffff;
+        return TAG_COLORS[hash % TAG_COLORS.length];
+      }
+
+      function tagBadgeHtml(tag) {
+        const { bg, text } = tagColor(tag);
+        return `<span class="tag-badge" style="background:${bg};color:${text}">${escHtml(tag)}</span>`;
+      }
+
       // ---------------------------------------------------------------------------
       // Utilities
       // ---------------------------------------------------------------------------
@@ -277,18 +592,76 @@
         return span;
       }
 
+      function escHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
       // ---------------------------------------------------------------------------
       // State
       // ---------------------------------------------------------------------------
 
-      let activeEventSource = null;
-      let activePair = null;
+      let activeEventSource    = null;
+      let activePair          = null;
+      let scenariosData       = { scenarios: [], environments: {} };
+      let activeTag           = "";   // "" = all
+      let activeQuickReportUrl = null;
+
+      // ---------------------------------------------------------------------------
+      // Tag filter bar
+      // ---------------------------------------------------------------------------
+
+      function renderTagFilter() {
+        const bar = document.getElementById("tag-filter-bar");
+        const allTags = [...new Set(
+          scenariosData.scenarios.flatMap((s) => s.tags || [])
+        )].sort();
+
+        if (!allTags.length) {
+          bar.style.display = "none";
+          return;
+        }
+
+        bar.style.display = "flex";
+        // Keep the label, rebuild chips
+        bar.innerHTML = '<span class="tag-filter-label">Run filter:</span>';
+
+        const allBtn = document.createElement("button");
+        allBtn.className = "tag-chip tag-chip-all" + (activeTag === "" ? " active" : "");
+        allBtn.textContent = "All pages";
+        allBtn.dataset.tag = "";
+        bar.appendChild(allBtn);
+
+        for (const tag of allTags) {
+          const { bg, text } = tagColor(tag);
+          const btn = document.createElement("button");
+          btn.className = "tag-chip";
+          btn.dataset.tag = tag;
+          btn.textContent = tag;
+          if (activeTag === tag) {
+            btn.style.cssText = `background:${text};color:#fff;border-color:${text}`;
+          } else {
+            btn.style.cssText = `background:${bg};color:${text};border-color:${text}`;
+          }
+          bar.appendChild(btn);
+        }
+      }
+
+      document.getElementById("tag-filter-bar").addEventListener("click", (e) => {
+        const chip = e.target.closest(".tag-chip");
+        if (!chip) return;
+        activeTag = chip.dataset.tag;
+        renderTagFilter();
+        // Re-render cards so Run button label updates
+        // We don't need a fresh API call — just re-render with existing pair data
+        if (window._lastPairs) renderCards(window._lastPairs);
+      });
 
       // ---------------------------------------------------------------------------
       // Render cards
       // ---------------------------------------------------------------------------
 
       function renderCards(pairs) {
+        window._lastPairs = pairs;
         const container = document.getElementById("cards");
         if (!pairs.length) {
           container.innerHTML = '<div class="empty">No comparison pairs found.</div>';
@@ -304,8 +677,7 @@
           card.id = `card-${p.pair}`;
 
           const runningBadge = p.running
-            ? `<span class="badge-running">Running</span>`
-            : "";
+            ? `<span class="badge-running">Running</span>` : "";
 
           let statsHtml;
           if (!hasResults) {
@@ -328,6 +700,10 @@
               </span>
             `;
           }
+
+          const runLabel = activeTag
+            ? `▶ Run <span style="opacity:.8;font-size:.75em">[${escHtml(activeTag)}]</span>`
+            : "▶ Run";
 
           card.innerHTML = `
             <div class="card-header">
@@ -353,13 +729,82 @@
                 data-test="${p.test}"
                 data-pair="${p.pair}"
               >
-                ${p.running ? '<span class="spinner"></span> Running…' : "▶ Run"}
+                ${p.running ? '<span class="spinner"></span> Running…' : runLabel}
               </button>
             </div>
           `;
 
           container.appendChild(card);
         }
+      }
+
+      // ---------------------------------------------------------------------------
+      // Pages rendering
+      // ---------------------------------------------------------------------------
+
+      function renderPages(data) {
+        scenariosData = data;
+        const { scenarios } = data;
+        populateEnvDropdowns(data.environments);
+        const tbody = document.getElementById("pages-tbody");
+        const count = document.getElementById("pages-count");
+
+        count.textContent = `(${scenarios.length})`;
+
+        if (!scenarios.length) {
+          tbody.innerHTML = '<tr><td colspan="4" class="empty" style="padding:24px;text-align:center;color:#94a3b8;">No pages defined yet.</td></tr>';
+          renderTagFilter();
+          return;
+        }
+
+        tbody.innerHTML = "";
+        scenarios.forEach((s, i) => {
+          const urlRows = Object.entries(data.environments)
+            .map(([env, base]) =>
+              `<div class="page-url-row">
+                <span class="page-url-env">${env}</span>
+                <a class="page-url-link" href="${base}${s.path}" target="_blank" rel="noopener">${base}${s.path}</a>
+              </div>`
+            ).join("");
+
+          const currentTags = s.tags || [];
+          const tagsHtml = currentTags.map(tagBadgeHtml).join(" ");
+
+          const tr = document.createElement("tr");
+          tr.dataset.index = i;
+          tr.innerHTML = `
+            <td class="page-label">${escHtml(s.label)}</td>
+            <td>
+              <div class="page-path">${escHtml(s.path)}</div>
+              <div class="page-urls">${urlRows}</div>
+            </td>
+            <td style="min-width:140px;">
+              <div class="tags-cell" id="tags-display-${i}">
+                ${tagsHtml}
+                <button class="btn-edit-tags" data-action="edit-tags" data-index="${i}">
+                  ${currentTags.length ? "edit" : "+ add tag"}
+                </button>
+              </div>
+              <div class="tags-editor" id="tags-editor-${i}">
+                <input
+                  type="text"
+                  id="tags-input-${i}"
+                  placeholder="canada, usa"
+                  value="${escHtml(currentTags.join(", "))}"
+                  autocomplete="off"
+                />
+                <button class="btn-tags-save" data-action="save-tags" data-index="${i}">Save</button>
+                <button class="btn-tags-cancel" data-action="cancel-tags" data-index="${i}">✕</button>
+              </div>
+            </td>
+            <td style="width:40px;text-align:right;">
+              <button class="btn-delete" data-action="delete-page" data-index="${i}" title="Remove page">×</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        renderTagFilter();
       }
 
       // ---------------------------------------------------------------------------
@@ -371,29 +816,43 @@
         return res.json();
       }
 
+      async function loadScenarios() {
+        const res = await fetch("/api/scenarios");
+        return res.json();
+      }
+
       async function refreshCards() {
         const pairs = await loadStatus();
         renderCards(pairs);
       }
 
+      async function refreshAll() {
+        const [pairs, scenarios] = await Promise.all([loadStatus(), loadScenarios()]);
+        renderCards(pairs);
+        renderPages(scenarios);
+      }
+
       async function startRun(ref, test, pair) {
-        // Disable the run button immediately
         const btn = document.querySelector(`[data-action="run"][data-pair="${pair}"]`);
         if (btn) {
           btn.disabled = true;
           btn.innerHTML = '<span class="spinner"></span> Running…';
         }
 
+        const body = { ref, test };
+        if (activeTag) body.tag = activeTag;
+
         const res = await fetch("/api/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ref, test }),
+          body: JSON.stringify(body),
         });
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           showConsole(pair, ref, test);
           appendLine(`Error: ${err.error || res.statusText}`);
+          if (btn) { btn.disabled = false; btn.innerHTML = "▶ Run"; }
           return;
         }
 
@@ -408,16 +867,12 @@
 
       function showConsole(pair, ref, test) {
         const wrap = document.getElementById("console-wrap");
-        const output = document.getElementById("console-output");
-        const pairEl = document.getElementById("console-pair");
-        const status = document.getElementById("console-status");
-
+        document.getElementById("console-output").innerHTML = "";
+        document.getElementById("console-status").innerHTML = "";
+        const label = activeTag ? `${ref} → ${test}  [${activeTag}]` : `${ref} → ${test}`;
+        document.getElementById("console-pair").textContent = label;
         wrap.classList.add("visible");
-        output.innerHTML = "";
-        status.innerHTML = "";
-        pairEl.textContent = `${ref} → ${test}`;
         activePair = pair;
-
         wrap.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
@@ -429,37 +884,36 @@
 
       function setConsoleStatus(exitCode) {
         const status = document.getElementById("console-status");
-        if (exitCode === 0) {
-          status.innerHTML = `<span class="dot-success">●</span> Completed successfully`;
+        const dot = exitCode === 0
+          ? `<span class="dot-success">●</span> Completed successfully`
+          : `<span class="dot-fail">●</span> Completed with mismatches (exit ${exitCode})`;
+
+        if (activeQuickReportUrl) {
+          status.innerHTML = `${dot} &nbsp;
+            <a href="${activeQuickReportUrl}" target="_blank" rel="noopener"
+               style="color:#7c3aed;font-weight:600;text-decoration:none;border:1px solid #7c3aed;padding:2px 10px;border-radius:6px;font-size:.75rem;margin-left:4px;">
+              View Report →
+            </a>`;
+          activeQuickReportUrl = null;
         } else {
-          status.innerHTML = `<span class="dot-fail">●</span> Completed with mismatches (exit ${exitCode})`;
+          status.innerHTML = dot;
         }
       }
 
       function streamLogs(runId, pair) {
-        // Close any previous stream
         if (activeEventSource) activeEventSource.close();
-
         const es = new EventSource(`/api/logs/${encodeURIComponent(runId)}`);
         activeEventSource = es;
 
         es.onmessage = (e) => {
-          try {
-            appendLine(JSON.parse(e.data));
-          } catch {
-            appendLine(e.data);
-          }
+          try { appendLine(JSON.parse(e.data)); } catch { appendLine(e.data); }
         };
-
         es.addEventListener("done", (e) => {
-          const exitCode = parseInt(e.data, 10);
-          setConsoleStatus(exitCode);
+          setConsoleStatus(parseInt(e.data, 10));
           es.close();
           activeEventSource = null;
-          // Refresh cards to update pass/fail counts and remove running badge
-          setTimeout(refreshCards, 500);
+          if (pair) setTimeout(refreshCards, 500);
         });
-
         es.onerror = () => {
           appendLine("Connection lost.");
           es.close();
@@ -468,33 +922,258 @@
       }
 
       // ---------------------------------------------------------------------------
-      // Event delegation
+      // Inline tag editing helpers
+      // ---------------------------------------------------------------------------
+
+      function openTagEditor(index) {
+        document.getElementById(`tags-display-${index}`).style.display = "none";
+        const editor = document.getElementById(`tags-editor-${index}`);
+        editor.classList.add("open");
+        document.getElementById(`tags-input-${index}`).focus();
+      }
+
+      function closeTagEditor(index) {
+        document.getElementById(`tags-display-${index}`).style.display = "";
+        document.getElementById(`tags-editor-${index}`).classList.remove("open");
+      }
+
+      async function saveTagsForRow(index) {
+        const input = document.getElementById(`tags-input-${index}`);
+        const tags = input.value.split(",").map((t) => t.trim()).filter(Boolean);
+
+        const res = await fetch(`/api/scenarios/${index}/tags`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags }),
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error || "Failed to save tags"); return; }
+        renderPages({ ...scenariosData, scenarios: data.scenarios });
+      }
+
+      // ---------------------------------------------------------------------------
+      // Event delegation — cards
       // ---------------------------------------------------------------------------
 
       document.getElementById("cards").addEventListener("click", (e) => {
         const btn = e.target.closest("[data-action]");
         if (!btn || btn.disabled) return;
-
         if (btn.dataset.action === "report") {
           window.open(`/backstop_data/${btn.dataset.pair}/html_report/index.html`, "_blank");
         }
-
         if (btn.dataset.action === "run") {
           startRun(btn.dataset.ref, btn.dataset.test, btn.dataset.pair);
         }
       });
 
-      document.getElementById("refresh-btn").addEventListener("click", refreshCards);
+      // ---------------------------------------------------------------------------
+      // Event delegation — pages table
+      // ---------------------------------------------------------------------------
+
+      document.getElementById("pages-tbody").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-action]");
+        if (!btn) return;
+        const index = Number(btn.dataset.index);
+
+        if (btn.dataset.action === "delete-page") {
+          const s = scenariosData.scenarios[index];
+          if (!confirm(`Remove "${s.label}" (${s.path})?`)) return;
+          const res = await fetch(`/api/scenarios/${index}`, { method: "DELETE" });
+          const data = await res.json();
+          if (!res.ok) { alert(data.error || "Failed to delete"); return; }
+          renderPages({ ...scenariosData, scenarios: data.scenarios });
+        }
+
+        if (btn.dataset.action === "edit-tags")   openTagEditor(index);
+        if (btn.dataset.action === "cancel-tags") closeTagEditor(index);
+        if (btn.dataset.action === "save-tags")   saveTagsForRow(index);
+      });
+
+      document.getElementById("pages-tbody").addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        const input = e.target.closest(`[id^="tags-input-"]`);
+        if (!input) return;
+        const index = Number(input.id.replace("tags-input-", ""));
+        saveTagsForRow(index);
+      });
+
+      // ---------------------------------------------------------------------------
+      // Event delegation — add page form
+      // ---------------------------------------------------------------------------
+
+      document.getElementById("add-page-btn").addEventListener("click", () => {
+        const form = document.getElementById("add-page-form");
+        form.classList.toggle("visible");
+        if (form.classList.contains("visible")) document.getElementById("input-label").focus();
+      });
+
+      document.getElementById("cancel-page-btn").addEventListener("click", () => {
+        document.getElementById("add-page-form").classList.remove("visible");
+        ["input-label", "input-path", "input-tags"].forEach((id) => {
+          document.getElementById(id).value = "";
+          document.getElementById(id).classList.remove("error");
+        });
+        document.getElementById("form-error").textContent = "";
+      });
+
+      document.getElementById("submit-page-btn").addEventListener("click", async () => {
+        const labelEl = document.getElementById("input-label");
+        const pathEl  = document.getElementById("input-path");
+        const tagsEl  = document.getElementById("input-tags");
+        const errorEl = document.getElementById("form-error");
+
+        const label    = labelEl.value.trim();
+        const pagePath = pathEl.value.trim();
+        const tags     = tagsEl.value.split(",").map((t) => t.trim()).filter(Boolean);
+
+        errorEl.textContent = "";
+        [labelEl, pathEl].forEach((el) => el.classList.remove("error"));
+
+        if (!label) { labelEl.classList.add("error"); errorEl.textContent = "Label is required."; return; }
+        if (!pagePath.startsWith("/")) { pathEl.classList.add("error"); errorEl.textContent = "Path must start with /."; return; }
+
+        const res = await fetch("/api/scenarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label, path: pagePath, tags }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errorEl.textContent = data.error || "Failed to add page."; return; }
+
+        ["input-label", "input-path", "input-tags"].forEach((id) => document.getElementById(id).value = "");
+        document.getElementById("add-page-form").classList.remove("visible");
+        renderPages({ ...scenariosData, scenarios: data.scenarios });
+      });
+
+      ["input-label", "input-path", "input-tags"].forEach((id) => {
+        document.getElementById(id).addEventListener("keydown", (e) => {
+          if (e.key === "Enter") document.getElementById("submit-page-btn").click();
+        });
+      });
+
+      // ---------------------------------------------------------------------------
+      // Header buttons
+      // ---------------------------------------------------------------------------
+
+      document.getElementById("refresh-btn").addEventListener("click", refreshAll);
 
       document.getElementById("console-close").addEventListener("click", () => {
         document.getElementById("console-wrap").classList.remove("visible");
+      });
+
+      document.getElementById("restart-btn").addEventListener("click", async () => {
+        const btn = document.getElementById("restart-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner" style="border-color:rgba(255,255,255,.3);border-top-color:#fff;"></span> Restarting…';
+        try { await fetch("/api/restart", { method: "POST" }); } catch { /* expected */ }
+        const poll = setInterval(async () => {
+          try {
+            await fetch("/api/status");
+            clearInterval(poll);
+            btn.disabled = false;
+            btn.innerHTML = "⟳ Restart Server";
+            refreshAll();
+          } catch { /* still down */ }
+        }, 800);
+      });
+
+      // ---------------------------------------------------------------------------
+      // Quick Test
+      // ---------------------------------------------------------------------------
+
+      const ENV_ORDER = ["local", "dev", "test", "live"];
+
+      function populateEnvDropdowns(environments) {
+        const envs = ENV_ORDER.filter((e) => environments[e]);
+        ["qt-ref", "qt-test"].forEach((id, i) => {
+          const sel = document.getElementById(id);
+          sel.innerHTML = "";
+          envs.forEach((env) => {
+            const opt = document.createElement("option");
+            opt.value = env;
+            opt.textContent = env;
+            // Default ref=local (index 0), test=dev (index 1)
+            if (i === 0 && env === "local") opt.selected = true;
+            if (i === 1 && env === "dev")   opt.selected = true;
+            sel.appendChild(opt);
+          });
+        });
+      }
+
+      document.getElementById("qt-run-btn").addEventListener("click", async () => {
+        const pathEl  = document.getElementById("qt-path");
+        const labelEl = document.getElementById("qt-label");
+        const refEl   = document.getElementById("qt-ref");
+        const testEl  = document.getElementById("qt-test");
+        const errorEl = document.getElementById("qt-error");
+        const btn     = document.getElementById("qt-run-btn");
+
+        const pagePath = pathEl.value.trim();
+        const label    = labelEl.value.trim();
+        const ref      = refEl.value;
+        const test     = testEl.value;
+
+        errorEl.textContent = "";
+        pathEl.style.borderColor = "";
+
+        if (!pagePath.startsWith("/")) {
+          pathEl.style.borderColor = "#ef4444";
+          errorEl.textContent = "Path must start with /.";
+          return;
+        }
+        if (ref === test) {
+          errorEl.textContent = "Reference and Compare environments must be different.";
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Running…';
+        activeQuickReportUrl = null;
+
+        const res = await fetch("/api/quick-run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label, path: pagePath, ref, test }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          btn.disabled = false;
+          btn.innerHTML = "▶ Run Test";
+          errorEl.textContent = data.error || "Failed to start run.";
+          return;
+        }
+
+        activeQuickReportUrl = data.reportUrl;
+
+        // Show console and stream logs
+        document.getElementById("console-output").innerHTML = "";
+        document.getElementById("console-status").innerHTML = "";
+        document.getElementById("console-pair").textContent =
+          `${ref} → ${test}  ${label || pagePath}  [quick test]`;
+        const wrap = document.getElementById("console-wrap");
+        wrap.classList.add("visible");
+        wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        streamLogs(data.runId, null);
+
+        // Re-enable button once the SSE stream closes
+        const origEs = activeEventSource;
+        const checkDone = setInterval(() => {
+          if (activeEventSource !== origEs) {
+            clearInterval(checkDone);
+            btn.disabled = false;
+            btn.innerHTML = "▶ Run Test";
+          }
+        }, 500);
       });
 
       // ---------------------------------------------------------------------------
       // Boot
       // ---------------------------------------------------------------------------
 
-      refreshCards();
+      refreshAll();
     </script>
   </body>
 </html>

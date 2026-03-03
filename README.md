@@ -2,18 +2,58 @@
 
 Compares screenshots across environments to catch unintended visual changes.
 
+---
+
 ## Dashboard
 
-A local web dashboard lets you view past results and trigger new runs from a browser.
+A local web dashboard lets you manage pages, run comparisons, and view results — all from a browser.
 
 ```bash
 npm start
-# → BackstopJS Dashboard → http://localhost:3000
+# → BackstopJS Dashboard → http://localhost:3060
 ```
 
-The dashboard shows a card for each comparison pair with pass/fail counts, the last run time, and two buttons:
+Open `http://localhost:3060` after starting.
+
+### Comparison Cards
+
+A card is shown for each environment pair (`local→dev`, `dev→test`, `test→live`) displaying pass/fail counts and last run time.
+
 - **View Report** — opens the full BackstopJS HTML diff report in a new tab
-- **Run** — captures fresh reference screenshots and runs a comparison, streaming live output to the console below the cards
+- **▶ Run** — captures fresh reference screenshots and compares them, streaming live output to the console below
+
+### Pages Being Tested
+
+Below the cards, a table lists every page in the test suite with its path and full URLs for each environment.
+
+- **+ add tag / edit** — click on the tags cell of any row to add or change tags inline
+- **×** — removes the page from `scenarios.js` (with confirmation)
+- **+ Add Page** — opens an inline form to add a new page (label, path, optional tags)
+
+### Tag Filtering
+
+When any page has tags, a filter bar appears above the cards:
+
+```
+Run filter:  [All pages]  [canada]  [usa]
+```
+
+Selecting a tag changes the **▶ Run** button to **▶ Run [canada]** and limits the comparison to only pages with that tag. BackstopJS's `--filter` flag is used under the hood.
+
+### Quick Test
+
+A one-time comparison panel that doesn't save anything to `scenarios.js`:
+
+- Enter any URL path (e.g. `/contact`)
+- Optionally add a label
+- Pick the **Reference (from)** and **Compare (to)** environments from dropdowns
+- Click **▶ Run Test** — output streams live to the console, and a **View Report →** link appears when done
+
+Quick test reports are stored under `backstop_data/quick-runs/`.
+
+### Restart Server
+
+The **⟳ Restart Server** button in the header restarts the Node process in place and refreshes the dashboard automatically when it comes back online.
 
 ---
 
@@ -28,9 +68,9 @@ The dashboard shows a card for each comparison pair with pass/fail counts, the l
 
 ---
 
-## Running Tests
+## Running Tests (CLI)
 
-Each npm script captures fresh reference screenshots from the first environment and then immediately compares them against the second.
+Each npm script captures fresh reference screenshots from the first environment and immediately compares them against the second.
 
 ```bash
 npm run compare:local-dev    # local  → dev
@@ -53,7 +93,7 @@ Or call the script directly with any environment pair:
 
 1. **Reference** — screenshots are captured from `<ref_env>` and saved as the baseline
 2. **Test** — screenshots are captured from `<test_env>` and compared against the baseline
-3. **Report** — an HTML report opens showing pass/fail with side-by-side diffs
+3. **Report** — an HTML report is generated showing pass/fail with side-by-side diffs
 
 > "Mismatch errors found" at the end is normal — it just means differences were detected. Open the HTML report to review them.
 
@@ -67,21 +107,17 @@ After a run, open the HTML report for that pair:
 backstop_data/<ref>-vs-<test>/html_report/index.html
 ```
 
-For example, after `compare:local-dev`:
-
-```
-backstop_data/local-vs-dev/html_report/index.html
-```
-
 The report shows each scenario and viewport with:
 - **Pass** — screenshots match within the threshold
 - **Fail** — screenshots differ; click to see the diff overlay
+
+The dashboard's **View Report** button opens this directly in a new tab.
 
 ---
 
 ## Approving Changes
 
-If the diffs in the report are expected (e.g. intentional design changes), approve them to promote the test screenshots as the new reference:
+If the diffs are expected (e.g. intentional design changes), approve them to promote the test screenshots as the new reference:
 
 ```bash
 npx backstop approve --config=backstop.config.js --ref=local --test=dev
@@ -91,7 +127,13 @@ Adjust `--ref` and `--test` to match the pair you want to approve.
 
 ---
 
-## Adding Pages
+## Managing Pages
+
+### Via the Dashboard
+
+Use the **Pages Being Tested** table to add, tag, and remove pages without touching any files directly.
+
+### Via scenarios.js
 
 All pages are defined in [scenarios.js](scenarios.js). Add a new entry to the array:
 
@@ -104,12 +146,27 @@ All pages are defined in [scenarios.js](scenarios.js). Add a new entry to the ar
 
 The `path` is appended to each environment's base URL automatically.
 
-### Per-page options
+### Tags
 
-Any of these can be added to a scenario object:
+Pages can be tagged to allow running subsets of the test suite:
+
+```js
+{
+  label: "Best Attorneys Canada",
+  path: "/best-attorneys/canada",
+  tags: ["canada"],
+}
+```
+
+Multiple tags are supported: `tags: ["canada", "personal-injury"]`
+
+Tags can be added and edited from the dashboard without editing the file.
+
+### Per-page options
 
 | Option | Type | Description |
 |--------|------|-------------|
+| `tags` | string[] | Tag this page for filtered runs (e.g. `["canada"]`) |
 | `delay` | number (ms) | Extra wait after page load (default: 1500ms) |
 | `selectors` | string[] | Only screenshot these CSS selectors instead of the full page |
 | `hideSelectors` | string[] | Hide elements (set `visibility: hidden`) before screenshotting |
@@ -122,10 +179,22 @@ Any of these can be added to a scenario object:
 {
   label: "Homepage",
   path: "/",
+  tags: ["usa"],
   delay: 3000,
   hideSelectors: [".live-chat-widget"],
   removeSelectors: ["#some-ad-unit"],
 }
+```
+
+---
+
+## Filtering to Specific Pages (CLI)
+
+To run a comparison against only pages matching a tag, use the dashboard's tag filter. From the CLI, use the `--filter` flag with a regex matched against scenario labels:
+
+```bash
+./compare.sh local dev --filter="Canada"
+./compare.sh local dev --filter="Best Attorneys"
 ```
 
 ---
@@ -165,33 +234,26 @@ These selectors are removed from every screenshot (configured in `backstop.confi
 
 ---
 
-## Filtering to Specific Pages
-
-To run a test against only one page, use the `--filter` flag with the scenario label:
-
-```bash
-./compare.sh local dev --filter="Best Attorneys"
-```
-
-The filter is a regex matched against the scenario `label` field.
-
----
-
 ## Project Structure
 
 ```
 backstopjs/
-├── scenarios.js                        # Page definitions (edit this to add pages)
-├── backstop.config.js                  # BackstopJS configuration
-├── compare.sh                          # Wrapper script for reference + test
+├── scenarios.js                          # Page definitions — source of truth
+├── backstop.config.js                    # BackstopJS configuration
+├── server.js                             # Dashboard web server
+├── dashboard.html                        # Dashboard UI
+├── compare.sh                            # CLI wrapper for reference + test
 ├── package.json
 └── backstop_data/
     ├── engine_scripts/
     │   └── puppet/
-    │       ├── onBefore.js             # Sets cookies before page load
-    │       └── onReady.js              # Freezes animations, loads lazy images
-    └── <ref>-vs-<test>/
-        ├── bitmaps_reference/          # Baseline screenshots
-        ├── bitmaps_test/               # Latest test screenshots
-        └── html_report/               # Visual diff report
+    │       ├── onBefore.js               # Sets cookies before page load
+    │       └── onReady.js                # Freezes animations, loads lazy images
+    ├── quick-runs/                        # One-time Quick Test results
+    │   └── quick-<timestamp>/
+    │       └── html_report/
+    └── <ref>-vs-<test>/                  # Saved comparison pair results
+        ├── bitmaps_reference/            # Baseline screenshots
+        ├── bitmaps_test/                 # Latest test screenshots
+        └── html_report/                  # Visual diff report
 ```
