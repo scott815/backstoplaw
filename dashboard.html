@@ -346,6 +346,52 @@
       .form-error { font-size: .75rem; color: #ef4444; margin-top: 6px; min-height: 1em; }
       .form-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
 
+      /* Chip input (Add Page tags) */
+      .chip-input-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        padding: 5px 8px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #fff;
+        cursor: text;
+        min-height: 36px;
+        transition: border-color .15s;
+      }
+      .chip-input-wrap:focus-within { border-color: #2563eb; }
+      .chip-text-input {
+        border: none;
+        outline: none;
+        font-size: .85rem;
+        flex: 1;
+        min-width: 80px;
+        padding: 1px 2px;
+        background: transparent;
+      }
+      .chip-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .chip-item-remove {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0 0 0 2px;
+        font-size: .85rem;
+        line-height: 1;
+        opacity: .6;
+        color: inherit;
+      }
+      .chip-item-remove:hover { opacity: 1; }
+
       /* Console */
       .console-wrap {
         margin-top: 24px;
@@ -516,8 +562,10 @@
               <input id="input-path" type="text" placeholder="/contact" autocomplete="off" />
             </div>
             <div class="form-field">
-              <label for="input-tags">Tags <span style="font-weight:400;color:#94a3b8">(comma-separated, optional)</span></label>
-              <input id="input-tags" type="text" placeholder="canada, usa" autocomplete="off" />
+              <label>Tags <span style="font-weight:400;color:#94a3b8">(comma or Enter to add)</span></label>
+              <div class="chip-input-wrap" id="chip-input-wrap">
+                <input id="input-tags" type="text" placeholder="e.g. canada" autocomplete="off" class="chip-text-input" />
+              </div>
             </div>
             <div class="form-actions">
               <button class="btn btn-primary" id="submit-page-btn">Add Page</button>
@@ -562,7 +610,7 @@
 
       function tagBadgeHtml(tag) {
         const { bg, text } = tagColor(tag);
-        return `<span class="tag-badge" style="background:${bg};color:${text}">${escHtml(tag)}</span>`;
+        return `<button class="tag-badge" data-action="filter-tag" data-tag="${escHtml(tag)}" style="background:${bg};color:${text};border:none;cursor:pointer;font-family:inherit;">${escHtml(tag)}</button>`;
       }
 
       // ---------------------------------------------------------------------------
@@ -605,6 +653,7 @@
       let scenariosData       = { scenarios: [], environments: {} };
       let activeTag           = "";   // "" = all
       let activeQuickReportUrl = null;
+      let newPageTags = [];
 
       // ---------------------------------------------------------------------------
       // Tag filter bar
@@ -973,6 +1022,14 @@
       document.getElementById("pages-tbody").addEventListener("click", async (e) => {
         const btn = e.target.closest("[data-action]");
         if (!btn) return;
+
+        if (btn.dataset.action === "filter-tag") {
+          activeTag = activeTag === btn.dataset.tag ? "" : btn.dataset.tag;
+          renderTagFilter();
+          if (window._lastPairs) renderCards(window._lastPairs);
+          return;
+        }
+
         const index = Number(btn.dataset.index);
 
         if (btn.dataset.action === "delete-page") {
@@ -998,6 +1055,49 @@
       });
 
       // ---------------------------------------------------------------------------
+      // Chip input — Add Page tags
+      // ---------------------------------------------------------------------------
+
+      function renderChips() {
+        const wrap = document.getElementById("chip-input-wrap");
+        const input = document.getElementById("input-tags");
+        wrap.querySelectorAll(".chip-item").forEach((el) => el.remove());
+        for (const tag of newPageTags) {
+          const { bg, text } = tagColor(tag);
+          const chip = document.createElement("span");
+          chip.className = "chip-item";
+          chip.style.cssText = `background:${bg};color:${text}`;
+          chip.innerHTML = `${escHtml(tag)}<button class="chip-item-remove" data-tag="${escHtml(tag)}" tabindex="-1">×</button>`;
+          wrap.insertBefore(chip, input);
+        }
+      }
+
+      document.getElementById("chip-input-wrap").addEventListener("click", (e) => {
+        const btn = e.target.closest(".chip-item-remove");
+        if (btn) {
+          newPageTags = newPageTags.filter((t) => t !== btn.dataset.tag);
+          renderChips();
+        } else {
+          document.getElementById("input-tags").focus();
+        }
+      });
+
+      document.getElementById("input-tags").addEventListener("keydown", (e) => {
+        if (e.key === "," || e.key === "Enter") {
+          e.preventDefault();
+          const val = e.target.value.trim().replace(/,+$/, "").toLowerCase();
+          if (val && !newPageTags.includes(val)) {
+            newPageTags.push(val);
+            renderChips();
+          }
+          e.target.value = "";
+        } else if (e.key === "Backspace" && !e.target.value && newPageTags.length) {
+          newPageTags.pop();
+          renderChips();
+        }
+      });
+
+      // ---------------------------------------------------------------------------
       // Event delegation — add page form
       // ---------------------------------------------------------------------------
 
@@ -1009,22 +1109,28 @@
 
       document.getElementById("cancel-page-btn").addEventListener("click", () => {
         document.getElementById("add-page-form").classList.remove("visible");
-        ["input-label", "input-path", "input-tags"].forEach((id) => {
+        ["input-label", "input-path"].forEach((id) => {
           document.getElementById(id).value = "";
           document.getElementById(id).classList.remove("error");
         });
+        newPageTags = [];
+        renderChips();
+        document.getElementById("input-tags").value = "";
         document.getElementById("form-error").textContent = "";
       });
 
       document.getElementById("submit-page-btn").addEventListener("click", async () => {
         const labelEl = document.getElementById("input-label");
         const pathEl  = document.getElementById("input-path");
-        const tagsEl  = document.getElementById("input-tags");
         const errorEl = document.getElementById("form-error");
 
         const label    = labelEl.value.trim();
         const pagePath = pathEl.value.trim();
-        const tags     = tagsEl.value.split(",").map((t) => t.trim()).filter(Boolean);
+
+        // Flush any partially typed tag in the chip input
+        const pending = document.getElementById("input-tags").value.trim().toLowerCase();
+        if (pending && !newPageTags.includes(pending)) newPageTags.push(pending);
+        const tags = [...newPageTags];
 
         errorEl.textContent = "";
         [labelEl, pathEl].forEach((el) => el.classList.remove("error"));
@@ -1040,12 +1146,15 @@
         const data = await res.json();
         if (!res.ok) { errorEl.textContent = data.error || "Failed to add page."; return; }
 
-        ["input-label", "input-path", "input-tags"].forEach((id) => document.getElementById(id).value = "");
+        ["input-label", "input-path"].forEach((id) => document.getElementById(id).value = "");
+        newPageTags = [];
+        renderChips();
+        document.getElementById("input-tags").value = "";
         document.getElementById("add-page-form").classList.remove("visible");
         renderPages({ ...scenariosData, scenarios: data.scenarios });
       });
 
-      ["input-label", "input-path", "input-tags"].forEach((id) => {
+      ["input-label", "input-path"].forEach((id) => {
         document.getElementById(id).addEventListener("keydown", (e) => {
           if (e.key === "Enter") document.getElementById("submit-page-btn").click();
         });
