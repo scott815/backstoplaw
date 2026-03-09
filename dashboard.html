@@ -51,6 +51,33 @@
       /* Main */
       main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 
+      /* Viewport selector bar */
+      .viewport-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .viewport-bar-label { font-size: .78rem; font-weight: 600; color: #64748b; white-space: nowrap; }
+      .viewport-btn {
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px solid #e2e8f0;
+        background: #fff;
+        color: #94a3b8;
+        transition: all .15s;
+        line-height: 1.4;
+      }
+      .viewport-btn.active {
+        background: #1e293b;
+        border-color: #1e293b;
+        color: #fff;
+      }
+      .viewport-btn:hover:not(.active) { border-color: #94a3b8; color: #475569; }
+
       /* Tag filter bar */
       .tag-filter-bar {
         display: none;
@@ -491,6 +518,14 @@
     </header>
 
     <main>
+      <!-- Viewport selector bar -->
+      <div class="viewport-bar" id="viewport-bar">
+        <span class="viewport-bar-label">Viewports:</span>
+        <button class="viewport-btn active" data-vp="desktop">Desktop</button>
+        <button class="viewport-btn active" data-vp="tablet">Tablet</button>
+        <button class="viewport-btn active" data-vp="mobile">Mobile</button>
+      </div>
+
       <!-- Tag filter bar (shown when tags exist) -->
       <div class="tag-filter-bar" id="tag-filter-bar">
         <span class="tag-filter-label">Run filter:</span>
@@ -654,6 +689,21 @@
       let activeTag           = "";   // "" = all
       let activeQuickReportUrl = null;
       let newPageTags = [];
+      let activeViewports = new Set(["desktop", "tablet", "mobile"]);
+
+      document.getElementById("viewport-bar").addEventListener("click", (e) => {
+        const btn = e.target.closest(".viewport-btn");
+        if (!btn) return;
+        const vp = btn.dataset.vp;
+        if (activeViewports.has(vp)) {
+          if (activeViewports.size === 1) return; // keep at least one
+          activeViewports.delete(vp);
+          btn.classList.remove("active");
+        } else {
+          activeViewports.add(vp);
+          btn.classList.add("active");
+        }
+      });
 
       // ---------------------------------------------------------------------------
       // Tag filter bar
@@ -890,6 +940,7 @@
 
         const body = { ref, test };
         if (activeTag) body.tag = activeTag;
+        if (activeViewports.size < 3) body.viewports = [...activeViewports];
 
         const res = await fetch("/api/run", {
           method: "POST",
@@ -1190,7 +1241,7 @@
       // Quick Test
       // ---------------------------------------------------------------------------
 
-      const ENV_ORDER = ["local", "dev", "test", "live"];
+      const ENV_ORDER = ["local", "dev", "test", "liveV2", "ESIprod"];
 
       function populateEnvDropdowns(environments) {
         const envs = ENV_ORDER.filter((e) => environments[e]);
@@ -1242,7 +1293,7 @@
         const res = await fetch("/api/quick-run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label, path: pagePath, ref, test }),
+          body: JSON.stringify({ label, path: pagePath, ref, test, viewports: [...activeViewports] }),
         });
 
         const data = await res.json();

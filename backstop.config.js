@@ -7,12 +7,13 @@ const args = minimist(process.argv.slice(2));
 // Environment map (with aliases)
 // ---------------------------------------------------------------------------
 const environments = {
-  local: "https://authorities.lndo.site",
-  dev: "https://dev-authorities.pantheonsite.io",
-  test: "https://test-authorities.pantheonsite.io",
-  staging: "https://test-authorities.pantheonsite.io",
-  live: "https://attorneyatlawmagazine.com",
-  prod: "https://attorneyatlawmagazine.com",
+  local:   "https://authorities.lndo.site",
+  dev:     "https://dev-esirestructure.pantheonsite.io",
+  test:    "https://test-esirestructure.pantheonsite.io",
+  staging: "https://test-esirestructure.pantheonsite.io",
+  liveV2:  "https://live-esirestructure.pantheonsite.io",
+  ESIprod: "https://esicorporatewebsite.prod.acquia-sites.com",
+  prod:    "https://esicorporatewebsite.prod.acquia-sites.com",
 };
 
 // ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ if (!testBase) {
 }
 
 // Canonical names (resolve aliases for directory naming)
-const canonical = { staging: "test", prod: "live" };
+const canonical = { staging: "test", prod: "liveV2" };
 const refCanonical = canonical[refName] || refName;
 const testCanonical = canonical[testName] || testName;
 const pairName = `${refCanonical}-vs-${testCanonical}`;
@@ -63,11 +64,16 @@ module.exports = {
   id: pairName,
   engine: "puppeteer",
 
-  viewports: [
-    { label: "desktop", width: 1920, height: 1080 },
-    { label: "tablet", width: 1024, height: 768 },
-    { label: "mobile", width: 375, height: 812 },
-  ],
+  viewports: (() => {
+    const all = [
+      { label: "desktop", width: 1920, height: 1080 },
+      { label: "tablet",  width: 1024, height: 768  },
+      { label: "mobile",  width: 375,  height: 812  },
+    ];
+    if (!args.viewports) return all;
+    const allowed = args.viewports.split(",");
+    return all.filter((v) => allowed.includes(v.label));
+  })(),
 
   scenarios: builtScenarios,
 
@@ -103,6 +109,7 @@ module.exports = {
   engineOptions: {
     ignoreHTTPSErrors: true,
     args: ["--no-sandbox"],
+    protocolTimeout: 120000,
   },
 
   asyncCaptureLimit: 3,

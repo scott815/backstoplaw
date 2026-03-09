@@ -6,6 +6,13 @@
  * 3. Waits for all images to finish loading.
  */
 module.exports = async (page, scenario) => {
+  // 0. Dismiss the "Continue" gate if present (dev/test/liveV2 only)
+  const continueBtn = await page.$('button.pds-button');
+  if (continueBtn) {
+    await continueBtn.click();
+    await new Promise((r) => setTimeout(r, 2000)); // wait for transition
+  }
+
   // 1. Freeze all animations and transitions
   await page.evaluate(() => {
     const style = document.createElement("style");

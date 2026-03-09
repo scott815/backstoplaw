@@ -7,15 +7,16 @@ const PORT = process.env.PORT || 3060;
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "backstop_data");
 
-const KNOWN_PAIRS = ["local-vs-dev", "dev-vs-test", "test-vs-live"];
-const VALID_ENVS = new Set(["local", "dev", "test", "staging", "live", "prod"]);
-const CANONICAL = { staging: "test", prod: "live" };
+const KNOWN_PAIRS = ["local-vs-dev", "dev-vs-test", "test-vs-liveV2", "liveV2-vs-ESIprod"];
+const VALID_ENVS = new Set(["local", "dev", "test", "staging", "liveV2", "prod", "ESIprod"]);
+const CANONICAL = { staging: "test", prod: "liveV2" };
 
 const ENVIRONMENTS = {
-  local: "https://authorities.lndo.site",
-  dev:   "https://dev-authorities.pantheonsite.io",
-  test:  "https://test-authorities.pantheonsite.io",
-  live:  "https://attorneyatlawmagazine.com",
+  local:   "https://authorities.lndo.site",
+  dev:     "https://dev-esirestructure.pantheonsite.io",
+  test:    "https://test-esirestructure.pantheonsite.io",
+  liveV2:  "https://live-esirestructure.pantheonsite.io",
+  ESIprod: "https://esicorporatewebsite.prod.acquia-sites.com",
 };
 
 const MIME_TYPES = {
@@ -159,9 +160,9 @@ function apiRun(req, res) {
   let body = "";
   req.on("data", (chunk) => (body += chunk));
   req.on("end", () => {
-    let ref, test, tag;
+    let ref, test, tag, viewports;
     try {
-      ({ ref, test, tag } = JSON.parse(body));
+      ({ ref, test, tag, viewports } = JSON.parse(body));
     } catch {
       return json(res, 400, { error: "Invalid JSON" });
     }
@@ -189,6 +190,10 @@ function apiRun(req, res) {
       }
       const regex = matching.map((s) => escapeRegex(s.label)).join("|");
       args.push(`--filter=(${regex})`);
+    }
+    const vpList = Array.isArray(viewports) && viewports.length ? viewports : null;
+    if (vpList && vpList.length < 3) {
+      args.push(`--viewports=${vpList.join(",")}`);
     }
 
     const proc = spawn("./compare.sh", args, {
@@ -360,9 +365,9 @@ function apiQuickRun(req, res) {
   let body = "";
   req.on("data", (chunk) => (body += chunk));
   req.on("end", () => {
-    let label, pagePath, ref, test;
+    let label, pagePath, ref, test, viewports;
     try {
-      ({ label, path: pagePath, ref, test } = JSON.parse(body));
+      ({ label, path: pagePath, ref, test, viewports } = JSON.parse(body));
     } catch {
       return json(res, 400, { error: "Invalid JSON" });
     }
@@ -389,11 +394,14 @@ function apiQuickRun(req, res) {
     const config = {
       id: runId,
       engine: "puppeteer",
-      viewports: [
-        { label: "desktop", width: 1920, height: 1080 },
-        { label: "tablet",  width: 1024, height: 768  },
-        { label: "mobile",  width: 375,  height: 812  },
-      ],
+      viewports: (() => {
+        const all = [
+          { label: "desktop", width: 1920, height: 1080 },
+          { label: "tablet",  width: 1024, height: 768  },
+          { label: "mobile",  width: 375,  height: 812  },
+        ];
+        return Array.isArray(viewports) && viewports.length ? all.filter((v) => viewports.includes(v.label)) : all;
+      })(),
       scenarios: [{
         label: scenarioLabel,
         url: testBase + pagePath,
@@ -418,7 +426,7 @@ function apiQuickRun(req, res) {
         html_report:       `backstop_data/quick-runs/${runId}/html_report`,
         ci_report:         `backstop_data/quick-runs/${runId}/ci_report`,
       },
-      engineOptions: { ignoreHTTPSErrors: true, args: ["--no-sandbox"] },
+      engineOptions: { ignoreHTTPSErrors: true, args: ["--no-sandbox"], protocolTimeout: 120000 },
       asyncCaptureLimit: 3,
       asyncCompareLimit: 10,
     };
