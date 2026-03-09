@@ -220,7 +220,20 @@
         align-items: center;
         justify-content: space-between;
         border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        user-select: none;
       }
+      .pages-header:hover { background: #f8fafc; }
+      .pages-chevron {
+        font-size: .85rem;
+        color: #94a3b8;
+        transition: transform .2s;
+        margin-right: 8px;
+        display: inline-block;
+      }
+      .pages-section.expanded .pages-chevron { transform: rotate(90deg); }
+      .pages-body { display: none; }
+      .pages-section.expanded .pages-body { display: block; }
       .pages-title { font-size: .875rem; font-weight: 600; color: #334155; }
       .pages-title .count { font-weight: 400; color: #94a3b8; margin-left: 4px; }
 
@@ -506,6 +519,38 @@
         padding-bottom: 8px;
         flex-shrink: 0;
       }
+
+      /* Report panel */
+      .report-panel { display:none; margin-top:24px; background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; }
+      .report-panel.visible { display:block; }
+      .report-panel-header { padding:14px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f1f5f9; background:#f8fafc; }
+      .report-panel-title { font-size:.875rem; font-weight:600; color:#334155; }
+      .report-panel-meta  { font-size:.78rem; color:#94a3b8; }
+      .btn-sm { padding:4px 10px; font-size:.75rem; }
+      .report-archive-bar { display:flex; align-items:center; gap:6px; padding:8px 20px; border-bottom:1px solid #f1f5f9; overflow-x:auto; background:#fafafa; flex-wrap:nowrap; }
+      .archive-label { font-size:.72rem; font-weight:600; color:#64748b; white-space:nowrap; }
+      .archive-btn { padding:3px 10px; border-radius:999px; font-size:.72rem; font-weight:500; border:1.5px solid #e2e8f0; background:#fff; cursor:pointer; white-space:nowrap; }
+      .archive-btn:hover { border-color:#94a3b8; }
+      .archive-btn.active { border-color:#2563eb; color:#2563eb; background:#eff6ff; }
+      .report-body { padding:0 0 8px; }
+      .report-table { width:100%; border-collapse:collapse; }
+      .report-table th { text-align:left; font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; padding:8px 20px; border-bottom:1px solid #f1f5f9; background:#f8fafc; }
+      .report-table td { padding:9px 20px; font-size:.85rem; border-bottom:1px solid #f8fafc; vertical-align:middle; }
+      .report-table tr:last-child td { border-bottom:none; }
+      .report-table tr:hover td { background:#f8fafc; }
+      .cell-pass { color:#16a34a; font-weight:600; }
+      .cell-fail { color:#dc2626; font-weight:600; }
+      .result-pass { color:#16a34a; font-weight:600; font-size:.82rem; }
+      .result-fail { color:#dc2626; font-weight:600; font-size:.82rem; }
+      .btn-link { background:none; border:none; color:#2563eb; font-size:.8rem; font-weight:500; cursor:pointer; padding:0; text-decoration:underline; }
+      .btn-link:hover { color:#1d4ed8; }
+      .report-footer { padding:10px 20px; font-size:.8rem; color:#64748b; border-top:1px solid #f1f5f9; }
+      @media print {
+        header, .tag-filter-bar, .viewport-bar, .cards, .quick-test-panel, .pages-section, .console-wrap, .no-print { display:none !important; }
+        .report-panel { display:block !important; box-shadow:none; border:none; }
+        .report-panel-header { background:none; }
+        body { background:#fff; }
+      }
     </style>
   </head>
   <body>
@@ -569,10 +614,11 @@
       </div>
 
       <div class="pages-section" id="pages-section">
-        <div class="pages-header">
-          <span class="pages-title">Pages Being Tested <span class="count" id="pages-count"></span></span>
+        <div class="pages-header" id="pages-header">
+          <span class="pages-title"><span class="pages-chevron">▶</span>Pages Being Tested <span class="count" id="pages-count"></span></span>
           <button class="btn-add" id="add-page-btn">+ Add Page</button>
         </div>
+        <div class="pages-body" id="pages-body">
         <table class="pages-table" id="pages-table">
           <thead>
             <tr>
@@ -609,6 +655,31 @@
           </div>
           <div class="form-error" id="form-error"></div>
         </div>
+        </div><!-- /.pages-body -->
+      </div>
+
+      <!-- Archived reports section -->
+      <div class="pages-section" id="archive-section">
+        <div class="pages-header" id="archive-header">
+          <span class="pages-title"><span class="pages-chevron">▶</span>Run History <span class="count" id="archive-count"></span></span>
+        </div>
+        <div class="pages-body" id="archive-body">
+          <table class="pages-table" id="archive-table">
+            <thead>
+              <tr>
+                <th>Environments</th>
+                <th>Date &amp; Time</th>
+                <th>Tag</th>
+                <th>Viewports</th>
+                <th>Result</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="archive-tbody">
+              <tr><td colspan="6" class="empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="console-wrap" id="console-wrap">
@@ -621,6 +692,29 @@
         </div>
         <div class="console-output" id="console-output"></div>
         <div class="console-status" id="console-status"></div>
+      </div>
+
+      <!-- Clean report panel -->
+      <div class="report-panel" id="report-panel">
+        <div class="report-panel-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="report-panel-title" id="report-panel-title">Report</span>
+            <span class="report-panel-meta" id="report-panel-meta"></span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="report-full-btn">Full Report ↗</button>
+            <button class="btn btn-secondary btn-sm no-print" id="report-pdf-btn">⬇ PDF</button>
+            <button class="btn-close no-print" id="report-close">×</button>
+          </div>
+        </div>
+        <div class="report-archive-bar no-print" id="report-archive-bar"></div>
+        <div class="report-body">
+          <table class="report-table">
+            <thead><tr><th>Page</th><th>Desktop</th><th>Tablet</th><th>Mobile</th></tr></thead>
+            <tbody id="report-tbody"></tbody>
+          </table>
+          <div class="report-footer" id="report-footer"></div>
+        </div>
       </div>
     </main>
 
@@ -1012,7 +1106,12 @@
           setConsoleStatus(parseInt(e.data, 10));
           es.close();
           activeEventSource = null;
-          if (pair) setTimeout(refreshCards, 500);
+          if (pair) setTimeout(() => {
+            refreshCards();
+            if (document.getElementById("archive-section").classList.contains("expanded")) {
+              loadAllArchives();
+            }
+          }, 500);
         });
         es.onerror = () => {
           appendLine("Connection lost.");
@@ -1059,7 +1158,7 @@
         const btn = e.target.closest("[data-action]");
         if (!btn || btn.disabled) return;
         if (btn.dataset.action === "report") {
-          window.open(`/backstop_data/${btn.dataset.pair}/html_report/index.html`, "_blank");
+          openReport(btn.dataset.pair);
         }
         if (btn.dataset.action === "run") {
           startRun(btn.dataset.ref, btn.dataset.test, btn.dataset.pair);
@@ -1152,10 +1251,17 @@
       // Event delegation — add page form
       // ---------------------------------------------------------------------------
 
-      document.getElementById("add-page-btn").addEventListener("click", () => {
+      document.getElementById("add-page-btn").addEventListener("click", (e) => {
+        e.stopPropagation(); // don't trigger the header collapse toggle
+        const section = document.getElementById("pages-section");
+        if (!section.classList.contains("expanded")) section.classList.add("expanded");
         const form = document.getElementById("add-page-form");
         form.classList.toggle("visible");
         if (form.classList.contains("visible")) document.getElementById("input-label").focus();
+      });
+
+      document.getElementById("pages-header").addEventListener("click", () => {
+        document.getElementById("pages-section").classList.toggle("expanded");
       });
 
       document.getElementById("cancel-page-btn").addEventListener("click", () => {
@@ -1327,6 +1433,204 @@
             btn.innerHTML = "▶ Run Test";
           }
         }, 500);
+      });
+
+      // ---------------------------------------------------------------------------
+      // Report panel
+      // ---------------------------------------------------------------------------
+
+      let currentReportPair = null;
+      let currentReportTimestamp = null;
+
+      async function openReport(pair) {
+        currentReportPair = pair;
+        currentReportTimestamp = null;
+        document.getElementById("report-panel").classList.add("visible");
+        document.getElementById("report-panel").scrollIntoView({ behavior: "smooth" });
+        await loadReportData(pair, null);
+        await loadArchiveBar(pair);
+      }
+
+      async function loadReportData(pair, timestamp) {
+        const tbody = document.getElementById("report-tbody");
+        const footer = document.getElementById("report-footer");
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:16px 20px;color:#94a3b8;">Loading…</td></tr>';
+
+        const url = timestamp
+          ? `/backstop_data/${encodeURIComponent(pair)}/archive/${encodeURIComponent(timestamp)}.json`
+          : `/api/report/${encodeURIComponent(pair)}`;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:16px 20px;color:#94a3b8;">No report data found.</td></tr>';
+          return;
+        }
+        const data = await res.json();
+
+        // Group by label
+        const byLabel = {};
+        for (const t of data.tests) {
+          if (!byLabel[t.label]) byLabel[t.label] = {};
+          byLabel[t.label][t.viewport] = t;
+        }
+
+        // Header
+        const tagPart = data.tag ? ` · tag: ${data.tag}` : "";
+        document.getElementById("report-panel-title").textContent = `${data.ref} → ${data.test}${tagPart}`;
+        document.getElementById("report-panel-meta").textContent = `Run: ${new Date(data.ran).toLocaleString()}`;
+        document.getElementById("report-full-btn").onclick = () =>
+          window.open(`/backstop_data/${pair}/html_report/index.html`, "_blank");
+
+        // Table
+        tbody.innerHTML = "";
+        for (const [label, viewports] of Object.entries(byLabel)) {
+          const tr = document.createElement("tr");
+          let cells = `<td style="font-weight:500;color:#1e293b;">${escHtml(label)}</td>`;
+          for (const vp of ["desktop", "tablet", "mobile"]) {
+            const t = viewports[vp];
+            if (!t) cells += `<td style="color:#cbd5e1">—</td>`;
+            else if (t.status === "pass") cells += `<td class="cell-pass">✓</td>`;
+            else cells += `<td class="cell-fail">${parseFloat(t.misMatchPercentage).toFixed(2)}%</td>`;
+          }
+          tr.innerHTML = cells;
+          tbody.appendChild(tr);
+        }
+
+        footer.textContent = `${data.passed} passed · ${data.failed} failed · ${data.total} total`;
+      }
+
+      async function loadArchiveBar(pair) {
+        const bar = document.getElementById("report-archive-bar");
+        bar.innerHTML = '<span class="archive-label">History:</span>';
+
+        const res = await fetch(`/api/archive/${encodeURIComponent(pair)}`);
+        if (!res.ok) return;
+        const { entries } = await res.json();
+        if (!entries.length) {
+          bar.innerHTML += '<span style="font-size:.75rem;color:#94a3b8;">No archived runs yet</span>';
+          return;
+        }
+
+        const latestBtn = document.createElement("button");
+        latestBtn.className = "archive-btn active";
+        latestBtn.textContent = "Latest";
+        latestBtn.dataset.ts = "";
+        bar.appendChild(latestBtn);
+
+        for (const e of entries) {
+          const btn = document.createElement("button");
+          btn.className = "archive-btn";
+          const d = new Date(e.ran);
+          const tagLabel = e.tag ? ` · ${e.tag}` : "";
+          const failLabel = e.failed > 0 ? ` ${e.failed}✗` : "";
+          btn.textContent = `${d.toLocaleDateString()} ${d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}${tagLabel} · ${e.passed}✓${failLabel}`;
+          btn.dataset.ts = e.timestamp;
+          bar.appendChild(btn);
+        }
+      }
+
+      document.getElementById("report-archive-bar").addEventListener("click", async (e) => {
+        const btn = e.target.closest(".archive-btn");
+        if (!btn) return;
+        document.querySelectorAll(".archive-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentReportTimestamp = btn.dataset.ts || null;
+        await loadReportData(currentReportPair, currentReportTimestamp);
+      });
+
+      document.getElementById("report-close").addEventListener("click", () => {
+        document.getElementById("report-panel").classList.remove("visible");
+      });
+
+      document.getElementById("report-pdf-btn").addEventListener("click", () => window.print());
+
+      // ---------------------------------------------------------------------------
+      // Archive section
+      // ---------------------------------------------------------------------------
+
+      document.getElementById("archive-header").addEventListener("click", async () => {
+        const section = document.getElementById("archive-section");
+        const wasExpanded = section.classList.contains("expanded");
+        section.classList.toggle("expanded");
+        if (!wasExpanded) await loadAllArchives();
+      });
+
+      async function loadAllArchives() {
+        const tbody = document.getElementById("archive-tbody");
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">Loading…</td></tr>';
+
+        // Fetch current pairs from status, then load each pair's archive
+        let pairs = [];
+        try {
+          const res = await fetch("/api/status");
+          const data = await res.json();
+          pairs = data.map((p) => p.pair);
+        } catch {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty">Failed to load.</td></tr>';
+          return;
+        }
+
+        const allEntries = [];
+        await Promise.all(pairs.map(async (pair) => {
+          try {
+            const res = await fetch(`/api/archive/${encodeURIComponent(pair)}`);
+            if (!res.ok) return;
+            const { entries } = await res.json();
+            for (const e of entries) allEntries.push({ ...e, pair });
+          } catch { /* skip */ }
+        }));
+
+        // Sort newest first
+        allEntries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+        document.getElementById("archive-count").textContent = `(${allEntries.length})`;
+
+        if (!allEntries.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty">No archived runs yet. Runs are archived automatically after they complete.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = "";
+        for (const e of allEntries) {
+          const [ref, test] = e.pair.split("-vs-");
+          const d = new Date(e.ran);
+          const dateStr = d.toLocaleDateString();
+          const timeStr = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          const tagLabel = e.tag || '<span style="color:#cbd5e1">—</span>';
+          const vpLabel = e.viewports ? e.viewports.join(", ") : "all";
+          const resultHtml = e.failed > 0
+            ? `<span class="result-fail">${e.failed} failed</span> <span style="color:#94a3b8;font-size:.75rem;">/ ${e.passed} passed</span>`
+            : `<span class="result-pass">All passed</span> <span style="color:#94a3b8;font-size:.75rem;">(${e.passed})</span>`;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="font-weight:500;color:#1e293b;">${escHtml(ref)} → ${escHtml(test)}</td>
+            <td style="color:#475569;">${dateStr} ${timeStr}</td>
+            <td>${tagLabel}</td>
+            <td style="color:#64748b;font-size:.8rem;">${escHtml(vpLabel)}</td>
+            <td>${resultHtml}</td>
+            <td><button class="btn-link" data-pair="${escHtml(e.pair)}" data-ts="${escHtml(e.timestamp)}">View</button></td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      document.getElementById("archive-tbody").addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btn-link");
+        if (!btn) return;
+        const pair = btn.dataset.pair;
+        const ts = btn.dataset.ts;
+        // Open the report panel scrolled to the right archive entry
+        currentReportPair = pair;
+        currentReportTimestamp = ts;
+        document.getElementById("report-panel").classList.add("visible");
+        await loadReportData(pair, ts);
+        await loadArchiveBar(pair);
+        // Set the correct archive button as active
+        document.querySelectorAll(".archive-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.ts === ts);
+        });
+        document.getElementById("report-panel").scrollIntoView({ behavior: "smooth" });
       });
 
       // ---------------------------------------------------------------------------

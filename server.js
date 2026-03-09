@@ -223,6 +223,41 @@ function apiRun(req, res) {
       run.done = true;
       run.exitCode = code;
       for (const fn of run.listeners) fn(null, code);
+
+      // Auto-archive summary
+      try {
+        const archiveDir = path.join(DATA_DIR, pairName, "archive");
+        fs.mkdirSync(archiveDir, { recursive: true });
+        const ts = getLatestTimestamp(path.join(DATA_DIR, pairName));
+        if (ts) {
+          const reportPath = path.join(DATA_DIR, pairName, "bitmaps_test", ts, "report.json");
+          const raw = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const summary = {
+            timestamp: ts,
+            pair: pairName,
+            ref: refCanon,
+            test: testCanon,
+            tag: tag || null,
+            viewports: vpList || ["desktop", "tablet", "mobile"],
+            ran: new Date().toISOString(),
+            passed: 0, failed: 0, total: 0,
+            tests: (raw.tests || []).map((t) => ({
+              label: t.pair.label,
+              viewport: t.pair.viewportLabel,
+              status: t.status,
+              misMatchPercentage: t.pair.diff ? t.pair.diff.misMatchPercentage : null,
+            })),
+          };
+          for (const t of summary.tests) {
+            summary.total++;
+            if (t.status === "pass") summary.passed++; else summary.failed++;
+          }
+          fs.writeFileSync(
+            path.join(archiveDir, `${ts}.json`),
+            JSON.stringify(summary, null, 2)
+          );
+        }
+      } catch { /* non-fatal */ }
     });
 
     run.process = proc;
@@ -465,6 +500,66 @@ function apiQuickRun(req, res) {
   });
 }
 
+function apiGetReport(pair, res) {
+  const pairDir = path.join(DATA_DIR, pair);
+  const ts = getLatestTimestamp(pairDir);
+  if (!ts) return json(res, 404, { error: "No runs yet" });
+
+  const reportPath = path.join(pairDir, "bitmaps_test", ts, "report.json");
+  try {
+    const raw = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+    const [ref, test] = pair.split("-vs-");
+    const y=ts.slice(0,4),mo=ts.slice(4,6),d=ts.slice(6,8),
+          h=ts.slice(9,11),mi=ts.slice(11,13),s=ts.slice(13,15);
+    const summary = {
+      timestamp: ts,
+      pair, ref, test,
+      tag: null,
+      ran: new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}`).toISOString(),
+      passed: 0, failed: 0, total: 0,
+      tests: (raw.tests || []).map((t) => ({
+        label: t.pair.label,
+        viewport: t.pair.viewportLabel,
+        status: t.status,
+        misMatchPercentage: t.pair.diff ? t.pair.diff.misMatchPercentage : null,
+      })),
+    };
+    for (const t of summary.tests) {
+      summary.total++;
+      if (t.status === "pass") summary.passed++; else summary.failed++;
+    }
+    try {
+      const arch = JSON.parse(fs.readFileSync(
+        path.join(pairDir, "archive", `${ts}.json`), "utf8"));
+      summary.tag = arch.tag || null;
+    } catch { /* no archive yet */ }
+    json(res, 200, summary);
+  } catch (err) {
+    json(res, 500, { error: err.message });
+  }
+}
+
+function apiGetArchive(pair, res) {
+  const archiveDir = path.join(DATA_DIR, pair, "archive");
+  try {
+    const files = fs.readdirSync(archiveDir)
+      .filter((f) => f.endsWith(".json"))
+      .sort().reverse()
+      .slice(0, 30);
+    const entries = files.map((f) => {
+      try {
+        const d = JSON.parse(fs.readFileSync(path.join(archiveDir, f), "utf8"));
+        return { timestamp: d.timestamp, ran: d.ran, tag: d.tag || null,
+                 viewports: d.viewports || null,
+                 passed: d.passed, failed: d.failed, total: d.total };
+      } catch { return null; }
+    }).filter(Boolean);
+    json(res, 200, { pair, entries });
+  } catch {
+    json(res, 200, { pair, entries: [] });
+  }
+}
+
 function apiRestart(res) {
   json(res, 200, { message: "Restarting…" });
   setTimeout(() => {
@@ -520,6 +615,12 @@ const server = http.createServer((req, res) => {
 
   const logsMatch = pathname.match(/^\/api\/logs\/(.+)$/);
   if (method === "GET" && logsMatch) return apiLogs(req, logsMatch[1], res);
+
+  const reportMatch = pathname.match(/^\/api\/report\/(.+)$/);
+  if (method === "GET" && reportMatch) return apiGetReport(reportMatch[1], res);
+
+  const archiveMatch = pathname.match(/^\/api\/archive\/(.+)$/);
+  if (method === "GET" && archiveMatch) return apiGetArchive(archiveMatch[1], res);
 
   res.writeHead(404, { "Content-Type": "text/plain" });
   res.end("Not found");
