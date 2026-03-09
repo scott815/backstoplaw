@@ -15,46 +15,6 @@ npm start
 
 Open `http://localhost:3060` after starting.
 
-### Comparison Cards
-
-A card is shown for each environment pair (`local→dev`, `dev→test`, `test→live`) displaying pass/fail counts and last run time.
-
-- **View Report** — opens the full BackstopJS HTML diff report in a new tab
-- **▶ Run** — captures fresh reference screenshots and compares them, streaming live output to the console below
-
-### Pages Being Tested
-
-Below the cards, a table lists every page in the test suite with its path and full URLs for each environment.
-
-- **+ add tag / edit** — click on the tags cell of any row to add or change tags inline
-- **×** — removes the page from `scenarios.js` (with confirmation)
-- **+ Add Page** — opens an inline form to add a new page (label, path, optional tags)
-
-### Tag Filtering
-
-When any page has tags, a filter bar appears above the cards:
-
-```
-Run filter:  [All pages]  [canada]  [usa]
-```
-
-Selecting a tag changes the **▶ Run** button to **▶ Run [canada]** and limits the comparison to only pages with that tag. BackstopJS's `--filter` flag is used under the hood.
-
-### Quick Test
-
-A one-time comparison panel that doesn't save anything to `scenarios.js`:
-
-- Enter any URL path (e.g. `/contact`)
-- Optionally add a label
-- Pick the **Reference (from)** and **Compare (to)** environments from dropdowns
-- Click **▶ Run Test** — output streams live to the console, and a **View Report →** link appears when done
-
-Quick test reports are stored under `backstop_data/quick-runs/`.
-
-### Restart Server
-
-The **⟳ Restart Server** button in the header restarts the Node process in place and refreshes the dashboard automatically when it comes back online.
-
 ---
 
 ## Environments
@@ -62,65 +22,129 @@ The **⟳ Restart Server** button in the header restarts the Node process in pla
 | Name | Alias | URL |
 |------|-------|-----|
 | `local` | — | https://authorities.lndo.site |
-| `dev` | — | https://dev-authorities.pantheonsite.io |
-| `test` | `staging` | https://test-authorities.pantheonsite.io |
-| `live` | `prod` | https://attorneyatlawmagazine.com |
+| `dev` | — | https://dev-esirestructure.pantheonsite.io |
+| `test` | `staging` | https://test-esirestructure.pantheonsite.io |
+| `liveV2` | — | https://live-esirestructure.pantheonsite.io |
+| `ESIprod` | `prod` | https://esicorporatewebsite.prod.acquia-sites.com |
+
+Default comparison pairs shown on the dashboard:
+
+| Pair | Reference | Compare |
+|------|-----------|---------|
+| local-vs-dev | local | dev |
+| dev-vs-test | dev | test |
+| test-vs-liveV2 | test | liveV2 |
+| liveV2-vs-ESIprod | liveV2 | ESIprod |
+
+---
+
+## Dashboard Features
+
+### Comparison Cards
+
+A card is shown for each environment pair displaying pass/fail counts and last run time.
+
+- **View Report** — opens a clean in-dashboard report panel (see below)
+- **▶ Run** — captures fresh reference screenshots and compares them; output streams live to the console
+
+### Viewport Selector
+
+Above the cards, toggle which viewports are included in the next run:
+
+```
+Viewports:  [Desktop ✓]  [Tablet ✓]  [Mobile ✓]
+```
+
+Deselect any combination (at least one must stay active). The selection is applied to both full runs and Quick Tests.
+
+### Tag Filter
+
+When pages have tags, a filter bar appears above the cards:
+
+```
+Run filter:  [All pages]  [about]  [market]  [sustainability]  …
+```
+
+Selecting a tag limits the next **▶ Run** to only pages with that tag. BackstopJS's `--filter` flag is used under the hood.
+
+### Quick Test
+
+Run a one-time comparison for any single URL path without adding it to `scenarios.js`:
+
+1. Enter a path (e.g. `/contact-us`)
+2. Optionally add a label
+3. Pick **Reference** and **Compare** environments from the dropdowns
+4. Select which viewports to test
+5. Click **▶ Run Test** — output streams live; a **View Report →** link appears when done
+
+Quick test reports are stored under `backstop_data/quick-runs/` and are not archived.
+
+### Clean Report Panel
+
+After a run completes, click **View Report** on a card to open the in-dashboard report panel:
+
+- **Header** shows the environment pair and tag filter used (e.g. `liveV2 → ESIprod · tag: market`)
+- **Run timestamp** is shown next to the header
+- **Per-page table** — one row per scenario, columns for Desktop / Tablet / Mobile:
+  - ✓ — passed
+  - X.XX% — failed, showing the mismatch percentage
+  - — — viewport was not included in this run
+- **Full Report ↗** — opens the full BackstopJS HTML diff report in a new tab
+- **⬇ PDF** — opens the browser print dialog; only the report table is printed (all other UI is hidden)
+- **× Close** — dismisses the panel
+
+### Run History
+
+A collapsible **Run History** section below the pages table lists every archived run across all pairs:
+
+- Columns: **Environments**, **Date & Time**, **Tag**, **Viewports**, **Result**
+- Click **View** on any row to open that run's report in the report panel
+- Runs are archived automatically each time a comparison completes
+- History is stored locally in `backstop_data/<pair>/archive/` and is not committed to git
+
+### Pages Being Tested
+
+A collapsible table listing every page in the test suite. Click the header to expand.
+
+- **+ Add Page** — inline form to add a new page (label, path, optional tags)
+- **Tags cell** — click to add or edit tags inline
+- **×** — removes the page from `scenarios.js` (with confirmation)
+
+### Restart Server
+
+The **⟳ Restart Server** button in the header restarts the Node process in place and refreshes the dashboard automatically when it comes back online.
 
 ---
 
 ## Running Tests (CLI)
 
-Each npm script captures fresh reference screenshots from the first environment and immediately compares them against the second.
+Use the helper script directly with any environment pair:
 
 ```bash
-npm run compare:local-dev    # local  → dev
-npm run compare:dev-test     # dev    → test
-npm run compare:test-live    # test   → live
-```
-
-Or call the script directly with any environment pair:
-
-```bash
-./compare.sh <ref_env> <test_env>
+./compare.sh <ref_env> <test_env> [extra backstop flags]
 
 # Examples
-./compare.sh local dev
+./compare.sh liveV2 ESIprod
 ./compare.sh dev test
-./compare.sh test live
+./compare.sh test liveV2 --filter="About"
 ```
 
 ### What happens when you run a comparison
 
 1. **Reference** — screenshots are captured from `<ref_env>` and saved as the baseline
 2. **Test** — screenshots are captured from `<test_env>` and compared against the baseline
-3. **Report** — an HTML report is generated showing pass/fail with side-by-side diffs
+3. **Report** — an HTML report is generated at `backstop_data/<ref>-vs-<test>/html_report/index.html`
 
-> "Mismatch errors found" at the end is normal — it just means differences were detected. Open the HTML report to review them.
-
----
-
-## Reviewing Results
-
-After a run, open the HTML report for that pair:
-
-```
-backstop_data/<ref>-vs-<test>/html_report/index.html
-```
-
-The report shows each scenario and viewport with:
-- **Pass** — screenshots match within the threshold
-- **Fail** — screenshots differ; click to see the diff overlay
-
-The dashboard's **View Report** button opens this directly in a new tab.
+> "Mismatch errors found" at the end is normal — it just means differences were detected. Open the report to review them.
 
 ---
 
 ## Approving Changes
 
-If the diffs are expected (e.g. intentional design changes), approve them to promote the test screenshots as the new reference:
+If diffs are expected (e.g. intentional design changes), approve them to promote the test screenshots as the new baseline:
 
 ```bash
-npx backstop approve --config=backstop.config.js --ref=local --test=dev
+npx backstop approve --config=backstop.config.js --ref=liveV2 --test=ESIprod
 ```
 
 Adjust `--ref` and `--test` to match the pair you want to approve.
@@ -131,17 +155,14 @@ Adjust `--ref` and `--test` to match the pair you want to approve.
 
 ### Via the Dashboard
 
-Use the **Pages Being Tested** table to add, tag, and remove pages without touching any files directly.
+Use the **Pages Being Tested** section to add, tag, and remove pages without touching any files.
 
 ### Via scenarios.js
 
 All pages are defined in [scenarios.js](scenarios.js). Add a new entry to the array:
 
 ```js
-{
-  label: "Page Label",
-  path: "/your-page-path",
-}
+{ "label": "Page Label", "path": "/your-page-path", "tags": ["esiv2"] }
 ```
 
 The `path` is appended to each environment's base URL automatically.
@@ -151,22 +172,18 @@ The `path` is appended to each environment's base URL automatically.
 Pages can be tagged to allow running subsets of the test suite:
 
 ```js
-{
-  label: "Best Attorneys Canada",
-  path: "/best-attorneys/canada",
-  tags: ["canada"],
-}
+{ "label": "About", "path": "/about", "tags": ["esiv2", "about"] }
 ```
 
-Multiple tags are supported: `tags: ["canada", "personal-injury"]`
+Current tags in use: `esiv2` (all pages), `about`, `business`, `market`, `news`, `sustainability`, `other`
 
-Tags can be added and edited from the dashboard without editing the file.
+Tags can be added and edited from the dashboard without editing the file directly.
 
 ### Per-page options
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `tags` | string[] | Tag this page for filtered runs (e.g. `["canada"]`) |
+| `tags` | string[] | Tag this page for filtered runs |
 | `delay` | number (ms) | Extra wait after page load (default: 1500ms) |
 | `selectors` | string[] | Only screenshot these CSS selectors instead of the full page |
 | `hideSelectors` | string[] | Hide elements (set `visibility: hidden`) before screenshotting |
@@ -177,24 +194,13 @@ Tags can be added and edited from the dashboard without editing the file.
 
 ```js
 {
-  label: "Homepage",
-  path: "/",
-  tags: ["usa"],
-  delay: 3000,
-  hideSelectors: [".live-chat-widget"],
-  removeSelectors: ["#some-ad-unit"],
+  "label": "Homepage",
+  "path": "/",
+  "tags": ["esiv2"],
+  "delay": 3000,
+  "hideSelectors": [".live-chat-widget"],
+  "removeSelectors": ["#some-ad-banner"]
 }
-```
-
----
-
-## Filtering to Specific Pages (CLI)
-
-To run a comparison against only pages matching a tag, use the dashboard's tag filter. From the CLI, use the `--filter` flag with a regex matched against scenario labels:
-
-```bash
-./compare.sh local dev --filter="Canada"
-./compare.sh local dev --filter="Best Attorneys"
 ```
 
 ---
@@ -209,26 +215,32 @@ Screenshots are taken at three widths for every scenario:
 | tablet | 1024px | 768px |
 | mobile | 375px | 812px |
 
-Viewports are configured in [backstop.config.js](backstop.config.js).
+Use the viewport toggles in the dashboard or the `--viewports` CLI flag to limit a run to specific widths:
+
+```bash
+./compare.sh liveV2 ESIprod --viewports=desktop
+./compare.sh liveV2 ESIprod --viewports=desktop,tablet
+```
 
 ---
 
 ## How It Works
 
-### Cookie/banner suppression
-`onBefore.js` sets cookies before each page loads to automatically dismiss cookie consent banners so they don't appear in screenshots.
+### Cookie / banner suppression
+`onBefore.js` sets cookies before each page loads to automatically dismiss cookie consent banners.
+
+### Continue gate dismissal
+`onReady.js` checks for a `button.pds-button` gate element (present on dev, test, and liveV2) and clicks it before screenshotting. If the button is not present (ESIprod, local) this step is skipped.
 
 ### Animation freezing & lazy image loading
-`onReady.js` runs after each page loads and:
+`onReady.js` also:
 1. Freezes all CSS animations and transitions to prevent false diffs from motion
 2. Scrolls the full page to trigger any lazy-loaded images
 3. Waits for all images to finish loading before the screenshot is taken
 
 ### Elements removed globally
 These selectors are removed from every screenshot (configured in `backstop.config.js`):
-- `#onetrust-consent-sdk`
-- `#onetrust-banner-sdk`
-- `.cookie-banner`
+- `#onetrust-consent-sdk`, `#onetrust-banner-sdk`, `.cookie-banner`
 - Any element with `cookie` in its id or class
 - Ad iframes (DoubleClick, Google Syndication, Ad Service)
 
@@ -248,12 +260,14 @@ backstopjs/
     ├── engine_scripts/
     │   └── puppet/
     │       ├── onBefore.js               # Sets cookies before page load
-    │       └── onReady.js                # Freezes animations, loads lazy images
-    ├── quick-runs/                        # One-time Quick Test results
+    │       └── onReady.js                # Dismisses gate, freezes animations, loads lazy images
+    ├── quick-runs/                        # One-time Quick Test results (not archived)
     │   └── quick-<timestamp>/
     │       └── html_report/
     └── <ref>-vs-<test>/                  # Saved comparison pair results
+        ├── archive/                      # Auto-archived run summaries (gitignored)
+        │   └── <YYYYMMDD-HHMMSS>.json
         ├── bitmaps_reference/            # Baseline screenshots
-        ├── bitmaps_test/                 # Latest test screenshots
-        └── html_report/                  # Visual diff report
+        ├── bitmaps_test/                 # Latest test screenshots (gitignored)
+        └── html_report/                  # Visual diff report (gitignored)
 ```
